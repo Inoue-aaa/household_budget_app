@@ -1,5 +1,9 @@
 export function getBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://household-budget-app-mauve.vercel.app"
+  );
+  //return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
 
 export function getAllowedUserEmail() {
