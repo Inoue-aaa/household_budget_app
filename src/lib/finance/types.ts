@@ -1,0 +1,176 @@
+export type SourceType = "receipt" | "manual" | "credit_screenshot";
+export type ImportGroupStatus = "draft" | "confirmed" | "discarded";
+export type RuleSource = "manual_entry" | "user_confirmation" | "admin_seed";
+
+export type CategoryOption = {
+  id: string;
+  slug: string;
+  name: string;
+  sortOrder: number;
+  isActive?: boolean;
+};
+
+export type ExpenseListItem = {
+  id: string;
+  title: string;
+  amount: number;
+  occurredOn: string;
+  merchantName: string | null;
+  note: string | null;
+  importGroupId: string;
+  categoryId: string | null;
+  categoryName: string;
+  sourceType: SourceType;
+};
+
+export type CategorySummaryItem = {
+  categoryId: string;
+  categoryName: string;
+  total: number;
+  count: number;
+};
+
+export type MonthlyBudgetOverview = {
+  targetMonth: string;
+  monthLabel: string;
+  monthlyBudget: number | null;
+  selectedCategoryIds: string[];
+  selectedCategories: CategoryOption[];
+  spentAmount: number;
+  remainingAmount: number | null;
+  usageRate: number | null;
+  isOverBudget: boolean;
+  hasBudget: boolean;
+  hasSelectedCategories: boolean;
+};
+
+export type DailySpendingItem = {
+  date: string;
+  day: number;
+  amount: number;
+};
+
+export type ReportMonthOption = {
+  value: string;
+  label: string;
+};
+
+export type DashboardSnapshot = {
+  budget: MonthlyBudgetOverview;
+  monthlyTotal: number;
+  categorySummary: CategorySummaryItem[];
+};
+
+export type ExpensesPageSnapshot = {
+  items: ExpenseListItem[];
+  groups: ExpenseImportGroupSummary[];
+  totalCount: number;
+  totalAmount: number;
+};
+
+export type ExpensesReportSnapshot = {
+  targetMonth: string;
+  monthLabel: string;
+  totalAmount: number;
+  dailySpending: DailySpendingItem[];
+  availableMonths: ReportMonthOption[];
+};
+
+export type DailyExpenseCategorySummary = {
+  categoryId: string | null;
+  categoryName: string;
+  total: number;
+  count: number;
+};
+
+export type DailyExpensesSnapshot = {
+  date: string;
+  totalAmount: number;
+  items: ExpenseListItem[];
+  categorySummary: DailyExpenseCategorySummary[];
+  categories: CategoryOption[];
+};
+
+export type ExpenseImportGroupSummary = {
+  importGroupId: string;
+  sourceType: SourceType;
+  occurredOn: string;
+  merchantName: string | null;
+  itemCount: number;
+  totalAmount: number;
+  items: ExpenseListItem[];
+};
+
+export type ExpenseHistoryDaySummary = {
+  date: string;
+  totalAmount: number;
+  count: number;
+};
+
+export type ExpenseHistorySnapshot = {
+  targetMonth: string;
+  monthLabel: string;
+  totalAmount: number;
+  totalCount: number;
+  days: ExpenseHistoryDaySummary[];
+  availableMonths: ReportMonthOption[];
+};
+
+export type CategoryBreakdownSnapshot = {
+  targetMonth: string;
+  monthLabel: string;
+  totalAmount: number;
+  items: CategorySummaryItem[];
+  availableMonths: ReportMonthOption[];
+  selectedCategoryId: string | null;
+};
+
+export type PendingImportGroupSummary = {
+  importGroupId: string;
+  sourceType: SourceType;
+  createdAt: string;
+  occurredOn: string | null;
+  representativeLabel: string;
+  draftCount: number;
+};
+
+export type PendingImportsPageSnapshot = {
+  groups: PendingImportGroupSummary[];
+  totalCount: number;
+};
+
+export type OcrDebugInfo = {
+  requestedProviderMode: "dummy" | "real" | "ollama_local";
+  providerMode: "dummy" | "real" | "ollama_local";
+  providerName: string | null;
+  fallbackUsed: boolean;
+  errorCode: string | null;
+};
+
+export type DraftReviewItem = {
+  id: string;
+  importGroupId: string;
+  lineIndex: number;
+  title: string;
+  amount: number | null;
+  note: string | null;
+  merchantName: string | null;
+  occurredOn: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  sourceType: SourceType;
+  needsReview: boolean;
+};
+
+export type DraftReviewSnapshot = {
+  importGroupId: string;
+  sourceType: SourceType;
+  status: ImportGroupStatus;
+  title: string | null;
+  occurredOn: string | null;
+  draftCount: number;
+  needsReviewCount: number;
+  ocrDebug: OcrDebugInfo | null;
+  items: DraftReviewItem[];
+  categories: CategoryOption[];
+};
