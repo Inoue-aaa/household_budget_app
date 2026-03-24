@@ -3,18 +3,18 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { SubmitButton } from "@/components/SubmitButton";
-import { signInWithPasswordAction } from "@/features/auth/actions";
-import { initialLoginFormState } from "@/features/auth/form-state";
+import { signUpWithPasswordAction } from "@/features/auth/actions";
+import { initialSignUpFormState } from "@/features/auth/form-state";
 
-type LoginFormProps = {
+type SignUpFormProps = {
   defaultEmail?: string;
 };
 
-export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
-  const [state, formAction] = useActionState(signInWithPasswordAction, {
-    ...initialLoginFormState,
+export function SignUpForm({ defaultEmail = "" }: SignUpFormProps) {
+  const [state, formAction] = useActionState(signUpWithPasswordAction, {
+    ...initialSignUpFormState,
     values: {
-      ...initialLoginFormState.values,
+      ...initialSignUpFormState.values,
       email: defaultEmail
     }
   });
@@ -32,16 +32,14 @@ export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
           required
           type="email"
         />
-        <p className="field-hint">
-          ご自身のメールアドレスでログインします。自分専用の家計簿として使う前提です。
-        </p>
+        <p className="field-hint">このアプリで使うメールアドレスとパスワードを最初に登録します。</p>
         {state.fieldErrors?.email ? <p className="error-text">{state.fieldErrors.email}</p> : null}
       </div>
 
       <div className="field">
         <label htmlFor="password">パスワード</label>
         <input
-          autoComplete="current-password"
+          autoComplete="new-password"
           defaultValue=""
           id="password"
           name="password"
@@ -49,9 +47,25 @@ export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
           required
           type="password"
         />
-        <p className="field-hint">iPhone の保存済みパスワードを使うと次回以降の入力が楽になります。</p>
+        <p className="field-hint">8文字以上で設定してください。あとから Supabase Auth 側で再設定もできます。</p>
         {state.fieldErrors?.password ? (
           <p className="error-text">{state.fieldErrors.password}</p>
+        ) : null}
+      </div>
+
+      <div className="field">
+        <label htmlFor="passwordConfirm">パスワード確認</label>
+        <input
+          autoComplete="new-password"
+          defaultValue=""
+          id="passwordConfirm"
+          name="passwordConfirm"
+          placeholder="もう一度入力"
+          required
+          type="password"
+        />
+        {state.fieldErrors?.passwordConfirm ? (
+          <p className="error-text">{state.fieldErrors.passwordConfirm}</p>
         ) : null}
       </div>
 
@@ -61,9 +75,9 @@ export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
       ) : null}
 
       <div className="form-footer">
-        <SubmitButton pendingLabel="ログイン中...">ログイン</SubmitButton>
+        <SubmitButton pendingLabel="作成中...">アカウントを作成</SubmitButton>
         <p className="caption">
-          初回のパスワード設定がまだの場合は <Link href="/signup">アカウント作成</Link> から進めてください。
+          すでに登録済みの場合は <Link href="/login">ログイン</Link> へ戻ってください。
         </p>
       </div>
     </form>

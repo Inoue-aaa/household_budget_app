@@ -60,7 +60,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
       <SectionCard
         title="アカウント"
-        description="このアプリは自分専用のメールアドレスでログインする前提です。"
+        description="このアプリは自分専用のメールアドレスとパスワードでログインする前提です。"
       >
         <div className="list">
           <div className="list-row">
@@ -68,7 +68,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               <p className="list-title">ログイン中のメールアドレス</p>
               <p className="list-meta">{user?.email ?? "未取得"}</p>
             </div>
-            <span className="pill">Magic Link</span>
+            <span className="pill">Password</span>
           </div>
         </div>
       </SectionCard>
