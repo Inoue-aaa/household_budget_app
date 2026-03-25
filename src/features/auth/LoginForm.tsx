@@ -11,7 +11,10 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
-  const [state, formAction] = useActionState(signInWithPasswordAction, initialLoginFormState);
+  const [state, formAction] = useActionState(
+    signInWithPasswordAction,
+    initialLoginFormState,
+  );
 
   return (
     <form action={formAction} className="field-stack">
@@ -29,8 +32,6 @@ export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
         <p className="field-hint">
           ご自身のメールアドレスでログインします。自分専用の家計簿として使う前提です。
         </p>
-        {defaultEmail ? <p className="caption">利用予定のメールアドレス: {defaultEmail}</p> : null}
-        {state.fieldErrors?.email ? <p className="error-text">{state.fieldErrors.email}</p> : null}
       </div>
 
       <div className="field">
@@ -44,13 +45,17 @@ export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
           required
           type="password"
         />
-        <p className="field-hint">iPhone の保存済みパスワードを使うと次回以降の入力が楽になります。</p>
+        <p className="field-hint">
+          iPhone の保存済みパスワードを使うと次回以降の入力が楽になります。
+        </p>
         {state.fieldErrors?.password ? (
           <p className="error-text">{state.fieldErrors.password}</p>
         ) : null}
       </div>
 
-      {state.status === "error" && state.message ? <p className="error-text">{state.message}</p> : null}
+      {state.status === "error" && state.message ? (
+        <p className="error-text">{state.message}</p>
+      ) : null}
       {state.status === "success" && state.message ? (
         <p className="success-text">{state.message}</p>
       ) : null}
@@ -58,7 +63,8 @@ export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
       <div className="form-footer">
         <SubmitButton pendingLabel="ログイン中...">ログイン</SubmitButton>
         <p className="caption">
-          初回のパスワード設定がまだの場合は <Link href="/signup">アカウント作成</Link> から進めてください。
+          初回のパスワード設定がまだの場合は{" "}
+          <Link href="/signup">アカウント作成</Link> から進めてください。
         </p>
       </div>
     </form>
