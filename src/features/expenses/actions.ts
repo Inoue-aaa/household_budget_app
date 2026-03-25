@@ -27,6 +27,17 @@ const updateExpenseCategorySchema = z.object({
   categoryId: z.string().uuid()
 });
 
+const updateExpenseAmountSchema = z.object({
+  expenseId: z.string().uuid(),
+  occurredOn: z.string().refine(isValidDate),
+  amount: z.coerce
+    .number({
+      invalid_type_error: "金額を入力してください。"
+    })
+    .int("金額は整数で入力してください。")
+    .positive("金額は1円以上で入力してください。")
+});
+
 const deleteExpenseSchema = z.object({
   expenseId: z.string().uuid(),
   occurredOn: z.string().refine(isValidDate)
@@ -85,6 +96,30 @@ export async function updateExpenseCategoryAction(formData: FormData) {
 
   revalidateExpenseSurfaces(occurredOn);
   redirect(dayPath(occurredOn, "expense_updated"));
+}
+
+export async function updateExpenseAmountAction(formData: FormData) {
+  const parsed = updateExpenseAmountSchema.safeParse({
+    expenseId: formData.get("expenseId"),
+    occurredOn: formData.get("occurredOn"),
+    amount: formData.get("amount")
+  });
+
+  if (!parsed.success) {
+    const fallbackDate = formData.get("occurredOn")?.toString() ?? new Date().toISOString().slice(0, 10);
+    redirect(dayPath(fallbackDate, "expense_amount_error"));
+  }
+
+  const { expenseId, occurredOn, amount } = parsed.data;
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.from("expenses").update({ amount }).eq("id", expenseId);
+
+  if (error) {
+    redirect(dayPath(occurredOn, "expense_amount_error"));
+  }
+
+  revalidateExpenseSurfaces(occurredOn);
+  redirect(dayPath(occurredOn, "expense_amount_updated"));
 }
 
 export async function deleteExpenseAction(formData: FormData) {

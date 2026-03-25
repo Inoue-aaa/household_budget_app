@@ -1069,6 +1069,34 @@ button {
   word-break: break-all;
 }
 
+.upload-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-file-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-faint);
+}
+
+.upload-file-row strong {
+  color: var(--text-strong);
+  font-size: 0.94rem;
+  word-break: break-all;
+}
+
+.upload-file-row span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+
 .expense-card {
   padding: 16px;
   border: 1px solid var(--border);
@@ -1286,6 +1314,12 @@ button {
   line-height: 1.5;
 }
 
+.day-nav-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .day-action-grid {
   display: grid;
   gap: 10px;
@@ -1303,6 +1337,23 @@ button {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.expense-inline-input {
+  flex: 1 1 140px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 var(--card-bg-soft);
+}
+
+.expense-inline-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
 }
 
 .expense-inline-select {
@@ -1324,6 +1375,11 @@ button {
 
 .empty-state {
   padding: 12px 4px 4px;
+}
+
+.section-card-footer {
+  display: flex;
+  margin-top: 16px;
 }
 
 .bottom-back-button {
@@ -1367,6 +1423,7 @@ button {
     gap: 10px;
   }
 
+  .day-nav-grid,
   .day-action-grid {
     grid-template-columns: minmax(0, 1fr);
   }

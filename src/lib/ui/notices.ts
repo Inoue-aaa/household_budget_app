@@ -57,6 +57,11 @@ export function getUploadNotice(
       description:
         "画像ファイルのみ読み取りに対応しています。ファイル形式を確認して、もう一度お試しください。"
     },
+    "unsupported-heic": {
+      title: "HEIC / HEIF 画像はまだ未対応です",
+      description:
+        "iPhone の写真を JPEG または PNG に変換してから、もう一度お試しください。"
+    },
     "ocr-provider-unavailable": {
       title: "OCR を利用できませんでした",
       description: `${subjectLabel}用の OCR provider が利用できない状態です。設定を確認してから再度お試しください。`

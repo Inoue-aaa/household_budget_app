@@ -12,12 +12,14 @@ import { getOcrProviderMode } from "@/lib/utils/env";
 
 const MAX_UPLOAD_FILES = 3;
 const MAX_UPLOAD_FILE_SIZE = 8 * 1024 * 1024;
+const UNSUPPORTED_IMAGE_TYPES = new Set(["image/heic", "image/heif"]);
 
 export type UploadReviewErrorCode =
   | "unauthorized"
   | "missing-files"
   | "too-many-files"
   | "invalid-file"
+  | "unsupported-heic"
   | "ocr-provider-unavailable"
   | "ocr-api-key-missing"
   | "ocr-request-failed"
@@ -44,6 +46,17 @@ type UploadReviewConfig = {
   fallbackTitle: string;
 };
 
+function isUnsupportedHeicFile(file: File) {
+  const loweredName = file.name.toLowerCase();
+  const loweredType = file.type.toLowerCase();
+
+  return (
+    UNSUPPORTED_IMAGE_TYPES.has(loweredType) ||
+    loweredName.endsWith(".heic") ||
+    loweredName.endsWith(".heif")
+  );
+}
+
 function parseUploadFiles(formData: FormData): File[] | UploadReviewFailure {
   const files = formData
     .getAll("images")
@@ -63,6 +76,12 @@ function parseUploadFiles(formData: FormData): File[] | UploadReviewFailure {
 
   if (invalidFile) {
     return { ok: false, code: "invalid-file" };
+  }
+
+  const unsupportedHeicFile = files.find(isUnsupportedHeicFile);
+
+  if (unsupportedHeicFile) {
+    return { ok: false, code: "unsupported-heic" };
   }
 
   return files;

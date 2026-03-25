@@ -1,50 +1,123 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/SubmitButton";
 import { createReceiptReviewFromUploadAction } from "@/features/import-review/actions";
 
-type PreviewItem = {
+type SelectedFileItem = {
   id: string;
   name: string;
-  url: string;
+  type: string;
+  size: number;
 };
 
-export function ReceiptUploadForm() {
-  const [previews, setPreviews] = useState<PreviewItem[]>([]);
-  const previewCountLabel = useMemo(() => `${previews.length}/3 枚`, [previews.length]);
+const MAX_UPLOAD_FILES = 3;
+const UNSUPPORTED_IMAGE_TYPES = new Set(["image/heic", "image/heif"]);
 
-  useEffect(() => {
-    return () => {
-      previews.forEach((preview) => URL.revokeObjectURL(preview.url));
-    };
-  }, [previews]);
+function isUnsupportedHeicFile(file: File) {
+  const loweredName = file.name.toLowerCase();
+  const loweredType = file.type.toLowerCase();
+
+  return (
+    UNSUPPORTED_IMAGE_TYPES.has(loweredType) ||
+    loweredName.endsWith(".heic") ||
+    loweredName.endsWith(".heif")
+  );
+}
+
+function formatFileLog(file: File) {
+  return {
+    name: file.name,
+    type: file.type,
+    size: file.size
+  };
+}
+
+export function ReceiptUploadForm() {
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFileItem[]>([]);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const previewCountLabel = useMemo(() => `${selectedFiles.length}/3 枚`, [selectedFiles.length]);
 
   return (
     <form
       action={createReceiptReviewFromUploadAction}
       className="field-stack"
       data-testid="receipt-upload-form"
+      onSubmit={(event) => {
+        try {
+          setClientError(null);
+          const fileInput = event.currentTarget.elements.namedItem("images");
+
+          if (!(fileInput instanceof HTMLInputElement)) {
+            return;
+          }
+
+          const files = Array.from(fileInput.files ?? []).slice(0, MAX_UPLOAD_FILES);
+          console.error("[receipt-upload] submit files", files.map(formatFileLog));
+
+          const unsupportedHeicFile = files.find(isUnsupportedHeicFile);
+
+          if (unsupportedHeicFile) {
+            event.preventDefault();
+            setClientError(
+              "HEIC / HEIF 画像はまだ未対応です。iPhone の写真を JPEG または PNG に変換してからお試しください。"
+            );
+            console.error("[receipt-upload] blocked unsupported image", formatFileLog(unsupportedHeicFile));
+          }
+        } catch (error) {
+          event.preventDefault();
+          console.error("[receipt-upload] submit handler crashed", error);
+          setClientError(
+            "アップロード準備中にエラーが発生しました。画像を選び直して、もう一度お試しください。"
+          );
+        }
+      }}
     >
       <div className="field">
         <label htmlFor="receipt-images">画像を選択</label>
         <input
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           data-testid="receipt-images"
           id="receipt-images"
           multiple
           name="images"
           onChange={(event) => {
-            previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+            try {
+              setClientError(null);
 
-            const files = Array.from(event.currentTarget.files ?? []).slice(0, 3);
-            const nextPreviews = files.map((file) => ({
-              id: `${file.name}-${file.lastModified}`,
-              name: file.name,
-              url: URL.createObjectURL(file)
-            }));
+              const files = Array.from(event.currentTarget.files ?? []).slice(0, MAX_UPLOAD_FILES);
+              console.error("[receipt-upload] selected files", files.map(formatFileLog));
 
-            setPreviews(nextPreviews);
+              const unsupportedHeicFile = files.find(isUnsupportedHeicFile);
+
+              if (unsupportedHeicFile) {
+                event.currentTarget.value = "";
+                setSelectedFiles([]);
+                setClientError(
+                  "HEIC / HEIF 画像はまだ未対応です。iPhone の写真を JPEG または PNG に変換してからお試しください。"
+                );
+                console.error(
+                  "[receipt-upload] unsupported image selected",
+                  formatFileLog(unsupportedHeicFile)
+                );
+                return;
+              }
+
+              setSelectedFiles(
+                files.map((file) => ({
+                  id: `${file.name}-${file.lastModified}`,
+                  name: file.name,
+                  type: file.type,
+                  size: file.size
+                }))
+              );
+            } catch (error) {
+              console.error("[receipt-upload] selection handler crashed", error);
+              setSelectedFiles([]);
+              setClientError(
+                "画像の読み込み準備でエラーが発生しました。画像を選び直して、もう一度お試しください。"
+              );
+            }
           }}
           required
           type="file"
@@ -52,26 +125,28 @@ export function ReceiptUploadForm() {
         <p className="field-hint">
           1枚から3枚までのレシート画像を選択してください。現在: {previewCountLabel}
         </p>
+        {clientError ? <p className="error-text">{clientError}</p> : null}
       </div>
 
-      {previews.length > 0 ? (
-        <div className="upload-preview-grid">
-          {previews.map((preview) => (
-            <div className="upload-preview-card" key={preview.id}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img alt={preview.name} className="upload-preview-image" src={preview.url} />
-              <p className="upload-preview-name">{preview.name}</p>
+      {selectedFiles.length > 0 ? (
+        <div className="upload-file-list">
+          {selectedFiles.map((file) => (
+            <div className="upload-file-row" key={file.id}>
+              <strong>{file.name}</strong>
+              <span>
+                {file.type || "type unknown"} ・ {(file.size / 1024 / 1024).toFixed(2)} MB
+              </span>
             </div>
           ))}
         </div>
       ) : null}
 
       <div className="form-footer">
-        <SubmitButton pendingLabel="読み取り結果を作成中..." testId="receipt-upload-submit">
-          読み取り結果を作成して確認画面へ進む
+        <SubmitButton pendingLabel="読み取り候補を作成中..." testId="receipt-upload-submit">
+          読み取り候補を作成して確認画面へ進む
         </SubmitButton>
         <p className="caption">
-          画像は読み取り処理にのみ使用し、確認前データの生成後に保持しません。
+          まずはアップロード成功を優先するため、iPhone Safari では画像プレビューを簡略化しています。
         </p>
       </div>
     </form>

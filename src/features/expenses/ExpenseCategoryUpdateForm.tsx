@@ -14,7 +14,7 @@ function InlineSaveButton() {
 
   return (
     <button className="button button-secondary compact-button" disabled={pending} type="submit">
-      {pending ? "保存中..." : "カテゴリ変更"}
+      {pending ? "保存中..." : "カテゴリ更新"}
     </button>
   );
 }
@@ -28,7 +28,7 @@ export function ExpenseCategoryUpdateForm({
       <input name="expenseId" type="hidden" value={expense.id} />
       <input name="occurredOn" type="hidden" value={expense.occurredOn} />
       <select
-        aria-label="カテゴリ変更"
+        aria-label="カテゴリを更新"
         className="expense-inline-select"
         defaultValue={expense.categoryId ?? categories[0]?.id ?? ""}
         name="categoryId"

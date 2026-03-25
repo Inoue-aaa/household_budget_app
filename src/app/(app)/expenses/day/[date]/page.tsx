@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
+import { ExpenseAmountUpdateForm } from "@/features/expenses/ExpenseAmountUpdateForm";
 import { ExpenseCategoryUpdateForm } from "@/features/expenses/ExpenseCategoryUpdateForm";
 import { ExpenseDeleteForm } from "@/features/expenses/ExpenseDeleteForm";
 import { getDailyExpensesSnapshot } from "@/lib/finance/queries";
@@ -28,23 +29,34 @@ function getDailyNotice(code?: string) {
       return {
         tone: "success" as const,
         title: "カテゴリを更新しました",
-        description: "この日の集計と明細に変更を反映しました。"
+        description: "その日の支出一覧とカテゴリ別小計を更新しました。"
+      };
+    case "expense_amount_updated":
+      return {
+        tone: "success" as const,
+        title: "金額を更新しました",
+        description: "合計金額とカテゴリ別小計に最新の金額を反映しました。"
       };
     case "expense_deleted":
       return {
         tone: "success" as const,
-        title: "明細を削除しました",
-        description: "この日の合計金額とカテゴリ別小計を更新しました。"
+        title: "支出を削除しました",
+        description: "その日の合計金額とカテゴリ別小計を再計算しました。"
       };
     case "expense_update_error":
       return {
         title: "カテゴリを更新できませんでした",
-        description: "時間をおいてもう一度お試しください。"
+        description: "入力内容を確認して、もう一度お試しください。"
+      };
+    case "expense_amount_error":
+      return {
+        title: "金額を更新できませんでした",
+        description: "金額は1円以上の整数で入力してください。"
       };
     case "expense_delete_error":
       return {
-        title: "明細を削除できませんでした",
-        description: "時間をおいてもう一度お試しください。"
+        title: "支出を削除できませんでした",
+        description: "時間をおいて、もう一度お試しください。"
       };
     default:
       return null;
@@ -66,10 +78,13 @@ export default async function DailyExpensesPage({
         <ScreenHeader
           eyebrow="Day"
           title="日別詳細"
-          description="指定された日付を読み込めませんでした。URL の日付形式やデータの有無をご確認ください。"
+          description="日付の形式が正しくないか、データの取得に失敗しました。"
         />
 
-        <SectionCard title="表示できませんでした" description="日付の形式が正しくないか、読み込みに失敗しました。">
+        <SectionCard
+          title="表示できませんでした"
+          description="URL の日付をご確認ください。"
+        >
           <Link className="button button-secondary compact-button" href="/expenses/reports">
             back
           </Link>
@@ -94,8 +109,17 @@ export default async function DailyExpensesPage({
       <ScreenHeader
         eyebrow="Day"
         title={formatDisplayDate(snapshot.date)}
-        description="その日の合計金額、カテゴリ別小計、保存済み明細をまとめて確認できます。"
+        description="その日の保存済み支出を確認しながら、カテゴリ変更・金額修正・削除を行えます。"
       />
+
+      <div className="day-nav-grid">
+        <Link className="button button-secondary compact-button" href={`/expenses/day/${previousDate}`}>
+          前日へ
+        </Link>
+        <Link className="button button-secondary compact-button" href={`/expenses/day/${nextDate}`}>
+          次の日へ
+        </Link>
+      </div>
 
       <section className="stats-grid stats-grid-single">
         <div className="surface stat-card stat-card-accent stat-card-wide">
@@ -104,27 +128,13 @@ export default async function DailyExpensesPage({
         </div>
       </section>
 
-      <section className="surface section-card">
-        <div className="day-action-grid">
-          <Link className="button button-secondary compact-button" href={`/register/manual?occurredOn=${snapshot.date}`}>
-            新規追加
-          </Link>
-          <Link className="button button-secondary compact-button" href={`/expenses/day/${previousDate}`}>
-            前日へ
-          </Link>
-          <Link className="button button-secondary compact-button" href={`/expenses/day/${nextDate}`}>
-            次の日へ
-          </Link>
-        </div>
-      </section>
-
       <SectionCard
         title="カテゴリ別小計"
-        description="その日にどのカテゴリへどれだけ使ったかをまとめています。"
+        description="その日にどのカテゴリへいくら使ったかをまとめています。"
       >
         <div className="list">
           {snapshot.categorySummary.length === 0 ? (
-            <p className="section-copy">この日のカテゴリ別小計はまだありません。</p>
+            <p className="section-copy">この日はカテゴリ別小計がまだありません。</p>
           ) : (
             snapshot.categorySummary.map((item) => (
               <div className="list-row" key={item.categoryId ?? item.categoryName}>
@@ -141,14 +151,14 @@ export default async function DailyExpensesPage({
 
       <SectionCard
         title="支出明細"
-        description="カテゴリ変更や削除は各明細ごとに行えます。変更後はこの日の集計へすぐ反映されます。"
+        description="カテゴリ変更、金額修正、不要な明細の削除はここから行えます。"
       >
         <div className="list">
           {snapshot.items.length === 0 ? (
             <div className="empty-state">
               <p className="section-title">この日の支出はまだありません</p>
               <p className="section-copy">
-                新規追加からこの日付を初期値にして、手入力登録へ進めます。
+                新規追加からこの日付を初期値にした手入力登録へ進めます。
               </p>
             </div>
           ) : (
@@ -168,6 +178,7 @@ export default async function DailyExpensesPage({
                   </div>
 
                   <div className="expense-row-actions">
+                    <ExpenseAmountUpdateForm expense={item} />
                     <ExpenseCategoryUpdateForm categories={snapshot.categories} expense={item} />
                     <ExpenseDeleteForm
                       expenseId={item.id}
@@ -179,6 +190,15 @@ export default async function DailyExpensesPage({
               </section>
             ))
           )}
+        </div>
+
+        <div className="section-card-footer">
+          <Link
+            className="button button-secondary compact-button"
+            href={`/register/manual?occurredOn=${snapshot.date}`}
+          >
+            新規追加
+          </Link>
         </div>
       </SectionCard>
 
