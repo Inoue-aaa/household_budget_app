@@ -37,10 +37,13 @@ export function DraftReviewRowForm({
           className="review-form-control review-date-control"
           data-testid={`review-row-${item.id}-occurred-on`}
           id={`occurredOn-${item.id}`}
+          inputMode="numeric"
           name={`occurredOn-${item.id}`}
           onChange={(event) => onChange("occurredOn", event.target.value)}
+          pattern="\d{4}-\d{2}-\d{2}"
+          placeholder="YYYY-MM-DD"
           required
-          type="date"
+          type="text"
           value={values.occurredOn}
         />
       </div>

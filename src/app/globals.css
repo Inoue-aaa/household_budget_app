@@ -1002,7 +1002,7 @@ button {
 }
 
 .review-summary {
-  padding: 12px;
+  padding: 18px;
   border-color: var(--border-strong);
   background:
     linear-gradient(180deg, var(--surface-strong), var(--surface)),
@@ -1030,11 +1030,11 @@ button {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 10px 0 8px;
+  margin: 16px 0 12px;
 }
 
 .review-summary-card {
-  padding: 12px;
+  padding: 16px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--card-bg-soft);
@@ -1042,7 +1042,7 @@ button {
 
 .review-section-header {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   align-items: flex-start;
 }
 
@@ -1050,12 +1050,12 @@ button {
 .attention-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .attention-item {
   width: 100%;
-  padding: 10px 10px;
+  padding: 16px 18px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   background:
@@ -1067,11 +1067,11 @@ button {
 }
 
 .attention-item-compact {
-  padding: 10px 12px;
+  padding: 16px 18px;
 }
 
 .review-row-card {
-  padding: 8px 9px;
+  padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background:
@@ -1098,9 +1098,9 @@ button {
 .review-row-top {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .review-row-top-right {
@@ -1160,7 +1160,7 @@ button {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .review-row-actions-single {
@@ -1190,7 +1190,7 @@ button {
 
 .review-inline-grid {
   display: grid;
-  gap: 8px 10px;
+  gap: 12px 12px;
   grid-template-columns: repeat(auto-fit, minmax(164px, 1fr));
 }
 
@@ -1210,14 +1210,15 @@ button {
 .review-form-control {
   width: 100%;
   min-width: 0;
-  min-height: 38px;
-  padding: 8px 10px;
+  min-height: 40px;
+  padding: 10px 12px;
   font-size: 16px;
-  line-height: 1.25;
+  line-height: 1.35;
 }
 
 .review-date-control {
   text-align: left;
+  font-variant-numeric: tabular-nums;
 }
 
 .review-date-control::-webkit-date-and-time-value {
@@ -1233,27 +1234,19 @@ button {
 }
 
 .review-form-textarea {
-  min-height: 56px;
+  min-height: 72px;
 }
 
 .review-field {
-  gap: 5px;
+  gap: 8px;
 }
 
 .review-field label {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
 }
 
 .review-copy {
-  line-height: 1.72;
-}
-
-.review-field {
-  gap: 4px;
-}
-
-.review-field label {
-  font-size: 0.85rem;
+  line-height: 1.8;
 }
 
 .compact-button {
@@ -1677,7 +1670,7 @@ button {
 }
 
 .review-surface-tight {
-  padding-inline: 8px;
+  padding-inline: 16px;
 }
 
 .review-list {
@@ -1740,8 +1733,8 @@ button {
 
   .review-surface.section-card,
   .review-surface.review-summary {
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .review-inline-grid {
