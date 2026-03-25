@@ -1631,11 +1631,8 @@ button {
 }
 
 .review-page-shell {
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(calc(100vw - 2px), 700px);
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
 }
 
 .review-surface {
@@ -1698,7 +1695,7 @@ button {
   }
 
   .review-page-shell {
-    width: calc(100vw - 2px);
+    width: 100%;
   }
 
   .review-page-wide {
