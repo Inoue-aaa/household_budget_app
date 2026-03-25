@@ -64,7 +64,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
           <div>
             <p className="eyebrow">Review</p>
             <h1 className="screen-title">確認画面</h1>
-            <p className="screen-description">
+            <p className="screen-description review-copy">
               必要な項目を整えてから、各明細を確認済みにしてください。
             </p>
           </div>
@@ -82,7 +82,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
           </div>
         </div>
 
-        <p className="section-copy">
+        <p className="section-copy review-copy">
           取り込み: {snapshot.title ?? "未設定"}
           {snapshot.occurredOn ? ` ・ ${formatDisplayDate(snapshot.occurredOn)}` : ""}
         </p>
@@ -91,12 +91,12 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
       <section className="surface section-card review-surface review-surface-tight review-surface-wide">
         <h2 className="section-title">未確認の明細</h2>
         {remainingItems.length === 0 ? (
-          <p className="section-copy">
+          <p className="section-copy review-copy">
             すべての明細が確認済みです。このまま保存して確定できます。
           </p>
         ) : (
           <div className="attention-item attention-item-compact">
-            <p className="section-copy">
+            <p className="section-copy review-copy">
               未確認の明細が {remainingItems.length} 件あります。リストから順にチェックしてから、まとめて保存してください。
             </p>
           </div>
@@ -107,7 +107,9 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
         <div className="review-section-header">
           <div>
             <h2 className="section-title">明細一覧</h2>
-            <p className="section-copy">必要な項目を整えてから、各明細を確認済みにしてください。</p>
+            <p className="section-copy review-copy">
+              必要な項目を整えてから、各明細を確認済みにしてください。
+            </p>
           </div>
         </div>
 
@@ -116,7 +118,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
         {snapshot.items.length === 0 ? (
           <div className="empty-state">
             <p className="section-title">確認対象の明細がありません</p>
-            <p className="section-copy">新規追加して、必要な明細をここから作成できます。</p>
+            <p className="section-copy review-copy">新規追加して、必要な明細をここから作成できます。</p>
           </div>
         ) : (
           <div className="review-list">
@@ -206,14 +208,16 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
 
       <section className="surface section-card review-surface review-surface-wide">
         <h2 className="section-title">保存して確定</h2>
-        <p className="section-copy">
+        <p className="section-copy review-copy">
           {canConfirm
             ? "すべて確認済みです。まとめて保存して、支出一覧へ反映できます。"
             : `未確認が ${remainingItems.length} 件あります。すべて確認済みにしてから保存してください。`}
         </p>
         <div style={{ height: 14 }} />
         {snapshot.items.length === 0 ? (
-          <p className="section-copy">確定できる明細がありません。必要に応じて明細を追加してください。</p>
+          <p className="section-copy review-copy">
+            確定できる明細がありません。必要に応じて明細を追加してください。
+          </p>
         ) : (
           <form action={confirmDraftsAction}>
             <input name="importGroupId" type="hidden" value={snapshot.importGroupId} />

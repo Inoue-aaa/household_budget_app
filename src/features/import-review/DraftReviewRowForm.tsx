@@ -31,21 +31,21 @@ export function DraftReviewRowForm({
 }: DraftReviewRowFormProps) {
   return (
     <div className="field-stack review-row-form">
-      <div className="review-inline-grid review-inline-grid-wide">
-        <div className="field review-field">
-          <label htmlFor={`occurredOn-${item.id}`}>日付</label>
-          <input
-            className="review-form-control"
-            data-testid={`review-row-${item.id}-occurred-on`}
-            id={`occurredOn-${item.id}`}
-            name={`occurredOn-${item.id}`}
-            onChange={(event) => onChange("occurredOn", event.target.value)}
-            required
-            type="date"
-            value={values.occurredOn}
-          />
-        </div>
+      <div className="field review-field">
+        <label htmlFor={`occurredOn-${item.id}`}>日付</label>
+        <input
+          className="review-form-control review-date-control"
+          data-testid={`review-row-${item.id}-occurred-on`}
+          id={`occurredOn-${item.id}`}
+          name={`occurredOn-${item.id}`}
+          onChange={(event) => onChange("occurredOn", event.target.value)}
+          required
+          type="date"
+          value={values.occurredOn}
+        />
+      </div>
 
+      <div className="review-inline-grid review-inline-grid-wide">
         <div className="field review-field">
           <label htmlFor={`merchantName-${item.id}`}>{merchantLabel}</label>
           <input
@@ -59,23 +59,23 @@ export function DraftReviewRowForm({
             value={values.merchantName}
           />
         </div>
+
+        <div className="field review-field">
+          <label htmlFor={`title-${item.id}`}>内容</label>
+          <input
+            className="review-form-control"
+            data-testid={`review-row-${item.id}-title`}
+            id={`title-${item.id}`}
+            name={`title-${item.id}`}
+            onChange={(event) => onChange("title", event.target.value)}
+            required
+            type="text"
+            value={values.title}
+          />
+        </div>
       </div>
 
-      <div className="field review-field">
-        <label htmlFor={`title-${item.id}`}>内容</label>
-        <input
-          className="review-form-control"
-          data-testid={`review-row-${item.id}-title`}
-          id={`title-${item.id}`}
-          name={`title-${item.id}`}
-          onChange={(event) => onChange("title", event.target.value)}
-          required
-          type="text"
-          value={values.title}
-        />
-      </div>
-
-      <div className="review-inline-grid review-inline-grid-wide">
+      <div className="review-inline-grid review-inline-grid-compact">
         <div className="field review-field">
           <label htmlFor={`amount-${item.id}`}>金額</label>
           <input

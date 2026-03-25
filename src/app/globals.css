@@ -1198,6 +1198,10 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(164px, 1fr));
 }
 
+.review-inline-grid-compact {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
 .review-row-form {
   width: 100%;
   min-width: 0;
@@ -1212,8 +1216,36 @@ button {
   line-height: 1.25;
 }
 
+.review-date-control {
+  text-align: left;
+}
+
+.review-date-control::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.review-date-control::-webkit-datetime-edit {
+  padding: 0;
+}
+
+.review-date-control::-webkit-calendar-picker-indicator {
+  opacity: 0.88;
+}
+
 .review-form-textarea {
   min-height: 56px;
+}
+
+.review-field {
+  gap: 5px;
+}
+
+.review-field label {
+  font-size: 0.85rem;
+}
+
+.review-copy {
+  line-height: 1.72;
 }
 
 .review-field {
@@ -1713,6 +1745,10 @@ button {
   }
 
   .review-inline-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .review-inline-grid-compact {
     grid-template-columns: minmax(0, 1fr);
   }
 
