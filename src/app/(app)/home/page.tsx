@@ -46,21 +46,21 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <span className="stat-label">{currentMonth}の支出合計</span>
           <strong className="stat-value">{formatCurrency(snapshot.monthlyTotal)}</strong>
           <p className="section-copy stat-support-copy">
-            保存済みの支出だけを対象に、今月の合計額を表示しています。
+            保存済みの支出だけを対象に、今月の合計金額を表示しています。
           </p>
         </div>
       </section>
 
       <SectionCard
         title="カテゴリ別サマリー"
-        description="今月の支出が大きいカテゴリを上位3件まで表示しています。すべての内訳は詳細画面で確認できます。"
+        description="今月の支出が大きいカテゴリを上位3件まで表示しています。続きは詳細画面で確認できます。"
       >
         <div className="list">
           {snapshot.categorySummary.length === 0 ? (
             <div className="empty-state">
               <p className="section-title">今月のカテゴリ別支出はまだありません</p>
               <p className="section-copy">
-                手入力や読み取り結果の確定保存を行うと、ここに今月のカテゴリ別サマリーが表示されます。
+                手入力やレシート review を保存すると、ここにカテゴリ別サマリーが表示されます。
               </p>
             </div>
           ) : (
@@ -79,28 +79,33 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 </Link>
               ))}
               <Link
-                className="link-card"
+                className="list-row list-row-link"
                 href={`/home/categories?month=${snapshot.budget.targetMonth.slice(0, 7)}`}
               >
-                <strong>カテゴリ別詳細を見る</strong>
-                <span>{currentMonth}のカテゴリ別支出を金額順で確認できます。</span>
+                <div>
+                  <p className="list-title">カテゴリ別詳細</p>
+                  <p className="list-meta">{currentMonth}のカテゴリ別支出を金額順で確認できます。</p>
+                </div>
+                <strong>›</strong>
               </Link>
             </>
           )}
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="予算設定"
-        description="ホーム上の予算カードには編集ボタンを置かず、ここから今月の予算額と対象カテゴリを調整できるようにしています。"
-      >
-        <Link className="link-card link-card-featured" href="/home/budget">
-          <strong>{snapshot.budget.hasBudget ? "今月の予算を見直す" : "今月の予算を設定する"}</strong>
-          <span>
-            総予算額と集計対象カテゴリをまとめて更新できます。変動費だけを予算管理したいときに使えます。
+      <Link className="surface section-card section-card-link" href="/home/budget">
+        <div className="section-card-link-header">
+          <h2 className="section-title">予算設定</h2>
+          <span className="section-card-link-arrow" aria-hidden="true">
+            ›
           </span>
-        </Link>
-      </SectionCard>
+        </div>
+        <p className="section-copy">
+          {snapshot.budget.hasBudget
+            ? "今月の予算額と対象カテゴリを見直せます。固定費を予算対象から外したいときにも使えます。"
+            : "今月の予算額と対象カテゴリを設定します。まずは変動費だけを選んで始められます。"}
+        </p>
+      </Link>
     </div>
   );
 }

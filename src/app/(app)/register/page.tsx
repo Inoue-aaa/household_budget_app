@@ -53,17 +53,17 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
       </SectionCard>
 
       {pendingSnapshot.totalCount > 0 ? (
-        <SectionCard
-          title="未確認データ"
-          description="確認途中の取り込みがあるときだけ表示されます。review を再開するときに使います。"
-        >
-          <Link className="link-card" href="/register/pending">
-            <strong>未確認データを開く</strong>
-            <span>
-              {pendingSnapshot.totalCount}件の取り込みがあります。review 画面へ戻って続きを確認できます。
+        <Link className="surface section-card section-card-link" href="/register/pending">
+          <div className="section-card-link-header">
+            <h2 className="section-title">未確認データ</h2>
+            <span className="section-card-link-arrow" aria-hidden="true">
+              ›
             </span>
-          </Link>
-        </SectionCard>
+          </div>
+          <p className="section-copy">
+            {pendingSnapshot.totalCount}件の取り込みがあります。review 画面へ戻って続きを確認できます。
+          </p>
+        </Link>
       ) : null}
     </div>
   );

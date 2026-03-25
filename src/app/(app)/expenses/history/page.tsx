@@ -10,7 +10,9 @@ type ExpenseHistoryPageProps = {
   }>;
 };
 
-export default async function ExpenseHistoryPage({ searchParams }: ExpenseHistoryPageProps) {
+export default async function ExpenseHistoryPage({
+  searchParams,
+}: ExpenseHistoryPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const snapshot = await getExpenseHistorySnapshot(params?.month);
 
@@ -18,7 +20,7 @@ export default async function ExpenseHistoryPage({ searchParams }: ExpenseHistor
     <div className="page-stack">
       <ScreenHeader
         eyebrow="History"
-        title="登録履歴"
+        title="登録履歴一覧"
         description="保存済み支出を日ごとに振り返る画面です。対象日を選ぶと、その日の詳細内訳へ進めます。"
       />
 
@@ -50,7 +52,9 @@ export default async function ExpenseHistoryPage({ searchParams }: ExpenseHistor
         </div>
         <div className="surface stat-card">
           <span className="stat-label">表示合計</span>
-          <strong className="stat-value">{formatCurrency(snapshot.totalAmount)}</strong>
+          <strong className="stat-value">
+            {formatCurrency(snapshot.totalAmount)}
+          </strong>
         </div>
       </section>
 
@@ -68,7 +72,11 @@ export default async function ExpenseHistoryPage({ searchParams }: ExpenseHistor
             </div>
           ) : (
             snapshot.days.map((day) => (
-              <Link className="list-row list-row-link" href={`/expenses/day/${day.date}`} key={day.date}>
+              <Link
+                className="list-row list-row-link"
+                href={`/expenses/day/${day.date}`}
+                key={day.date}
+              >
                 <div>
                   <p className="list-title">{formatDisplayDate(day.date)}</p>
                   <p className="list-meta">{day.count}件</p>
@@ -80,7 +88,10 @@ export default async function ExpenseHistoryPage({ searchParams }: ExpenseHistor
         </div>
       </SectionCard>
 
-      <Link className="button button-secondary compact-button bottom-back-button" href="/expenses">
+      <Link
+        className="button button-secondary compact-button bottom-back-button"
+        href="/expenses"
+      >
         back
       </Link>
     </div>

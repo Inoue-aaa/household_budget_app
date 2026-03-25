@@ -827,6 +827,36 @@ button {
   line-height: 1.5;
 }
 
+.section-card-link {
+  display: block;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.section-card-link:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow:
+    var(--shadow-soft),
+    0 0 24px var(--accent-glow);
+}
+
+.section-card-link-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-card-link-arrow {
+  color: var(--muted-strong);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
 .bottom-nav {
   position: fixed;
   right: 0;
