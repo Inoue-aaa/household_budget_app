@@ -123,6 +123,9 @@ export type CategoryBreakdownSnapshot = {
   items: CategorySummaryItem[];
   availableMonths: ReportMonthOption[];
   selectedCategoryId: string | null;
+  selectedCategoryName: string | null;
+  selectedSort: "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+  selectedExpenses: ExpenseListItem[];
 };
 
 export type PendingImportGroupSummary = {

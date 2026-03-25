@@ -61,30 +61,12 @@ export function formatImportGroupHeading(value: SourceType) {
   }
 }
 
-export function formatImportGroupDeleteLabel(value: SourceType) {
-  switch (value) {
-    case "manual":
-      return "この手入力を削除";
-    case "receipt":
-      return "このレシートを削除";
-    case "credit_screenshot":
-      return "この明細取り込みを削除";
-    default:
-      return "この取り込みを削除";
-  }
+export function formatImportGroupDeleteLabel() {
+  return "削除";
 }
 
-export function formatImportGroupDeleteConfirmation(value: SourceType) {
-  switch (value) {
-    case "manual":
-      return "この手入力に含まれる支出をまとめて削除します。よろしいですか。";
-    case "receipt":
-      return "このレシートに含まれる支出をまとめて削除します。よろしいですか。";
-    case "credit_screenshot":
-      return "このクレジット明細に含まれる支出をまとめて削除します。よろしいですか。";
-    default:
-      return "この取り込みに含まれる支出をまとめて削除します。よろしいですか。";
-  }
+export function formatImportGroupDeleteConfirmation() {
+  return "この取り込みに含まれる支出をまとめて削除しますか？";
 }
 
 export function formatImportGroupMetaLabel(value: SourceType) {
@@ -95,7 +77,7 @@ export function formatImportGroupMetaLabel(value: SourceType) {
     case "credit_screenshot":
       return "取り込み元";
     default:
-      return "区分";
+      return "種別";
   }
 }
 

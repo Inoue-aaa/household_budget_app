@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -7,7 +8,7 @@ import {
   getOcrProviderMode,
   getOllamaOcrModel,
   getOpenAiApiKey,
-  getOpenAiReceiptOcrModel
+  getOpenAiReceiptOcrModel,
 } from "@/lib/utils/env";
 
 type ReceiptRegisterPageProps = {
@@ -16,7 +17,9 @@ type ReceiptRegisterPageProps = {
   }>;
 };
 
-export default async function ReceiptRegisterPage({ searchParams }: ReceiptRegisterPageProps) {
+export default async function ReceiptRegisterPage({
+  searchParams,
+}: ReceiptRegisterPageProps) {
   const { notice } = await searchParams;
   const uploadNotice = getUploadNotice("receipt", notice);
   const providerMode = getOcrProviderMode();
@@ -26,15 +29,15 @@ export default async function ReceiptRegisterPage({ searchParams }: ReceiptRegis
         ? getOpenAiReceiptOcrModel()
         : null
       : providerMode === "ollama_local"
-        ? getOllamaOcrModel()
-        : null;
+      ? getOllamaOcrModel()
+      : null;
 
   return (
     <div className="page-stack">
       <ScreenHeader
         eyebrow="Receipt"
         title="レシート登録"
-        description="画像から確認用の下書きを作成し、review 画面で内容を確認してから保存します。"
+        description="画像から確認用の下書きを作成し、確認画面で内容を調整してから保存します。"
       />
 
       {uploadNotice ? (
@@ -47,11 +50,22 @@ export default async function ReceiptRegisterPage({ searchParams }: ReceiptRegis
 
       <SectionCard
         title="画像を取り込む"
-        description="1枚から3枚までの画像をまとめて送信し、expense_drafts を作成して review 画面へ進みます。"
+        description="1枚から3枚までの画像をまとめて送信してください。確認画面へ遷移します。"
       >
         <ReceiptUploadForm />
-        {modelLabel ? <p className="caption">読み取りモデル: {modelLabel}</p> : null}
+        {modelLabel ? (
+          <p className="caption">読み取りモデル: {modelLabel}</p>
+        ) : null}
       </SectionCard>
+
+      <div className="single-action-row">
+        <Link
+          className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
+          href="/register"
+        >
+          back
+        </Link>
+      </div>
     </div>
   );
 }

@@ -13,6 +13,10 @@ function clampRate(rate: number | null) {
   return Math.max(0, Math.min(rate, 1));
 }
 
+function formatBudgetMonth(targetMonth: string) {
+  return targetMonth.slice(0, 7).replace("-", ".");
+}
+
 export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
   const usedRatio = clampRate(budget.usageRate);
   const remainingRatio = budget.hasBudget && !budget.isOverBudget ? Math.max(0, 1 - usedRatio) : 0;
@@ -23,10 +27,7 @@ export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
       <div className="budget-hero-header">
         <div>
           <p className="eyebrow">Budget</p>
-          <h2 className="budget-hero-title">{budget.monthLabel}の予算進捗</h2>
-          <p className="screen-description">
-            変動費として見たいカテゴリだけを対象に、今月の残り予算を確認できます。
-          </p>
+          <h2 className="budget-hero-title">予算状況（{formatBudgetMonth(budget.targetMonth)}）</h2>
         </div>
       </div>
 
@@ -34,7 +35,7 @@ export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
         <div className="budget-empty-state">
           <p className="section-title">今月の予算はまだ設定されていません</p>
           <p className="section-copy">
-            先に予算額と対象カテゴリを設定すると、ホーム上で今月の進み具合をまとめて確認できます。
+            先に予算額と対象カテゴリを設定すると、ホーム上で今月の残り使える額を確認できます。
           </p>
         </div>
       ) : (
@@ -82,7 +83,7 @@ export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
           <p className="budget-copy">
             {budget.hasSelectedCategories
               ? `集計対象: ${selectedCategoryNames}`
-              : "集計対象カテゴリはまだ選ばれていません。予算額だけ先に設定している状態です。"}
+              : "集計対象カテゴリはまだ選ばれていません。予算設定で選択してください。"}
           </p>
         </>
       )}

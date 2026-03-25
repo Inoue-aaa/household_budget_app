@@ -227,7 +227,8 @@ function createEmptyHistorySnapshot(date: Date): ExpenseHistorySnapshot {
 
 function createEmptyCategoryBreakdownSnapshot(
   date: Date,
-  selectedCategoryId: string | null
+  selectedCategoryId: string | null,
+  selectedSort: "date_desc" | "date_asc" | "amount_desc" | "amount_asc" = "date_desc"
 ): CategoryBreakdownSnapshot {
   const targetMonth = monthStartDateString(date).slice(0, 7);
 
@@ -237,7 +238,10 @@ function createEmptyCategoryBreakdownSnapshot(
     totalAmount: 0,
     items: [],
     availableMonths: [{ value: targetMonth, label: formatMonthLabel(`${targetMonth}-01`) }],
-    selectedCategoryId
+    selectedCategoryId,
+    selectedCategoryName: null,
+    selectedSort,
+    selectedExpenses: []
   };
 }
 
@@ -512,7 +516,8 @@ export async function getExpenseHistorySnapshot(month?: string): Promise<Expense
 
 export async function getCategoryBreakdownSnapshot(
   month?: string,
-  selectedCategoryId: string | null = null
+  selectedCategoryId: string | null = null,
+  sort: "date_desc" | "date_asc" | "amount_desc" | "amount_asc" = "date_desc"
 ): Promise<CategoryBreakdownSnapshot> {
   try {
     const supabase = await createServerSupabaseClient();
@@ -532,7 +537,7 @@ export async function getCategoryBreakdownSnapshot(
       ]);
 
     if (monthError || allDatesError) {
-      return createEmptyCategoryBreakdownSnapshot(targetDate, selectedCategoryId);
+      return createEmptyCategoryBreakdownSnapshot(targetDate, selectedCategoryId, sort);
     }
 
     const summaryMap = new Map<string, CategorySummaryItem>();
@@ -551,16 +556,68 @@ export async function getCategoryBreakdownSnapshot(
       summaryMap.set(categoryId, current);
     }
 
+    let selectedExpenses: ExpenseListItem[] = [];
+
+    if (selectedCategoryId) {
+      const { data: selectedRows, error: selectedError } = await supabase
+        .from("expenses")
+        .select(
+          "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
+        )
+        .eq("category_id", selectedCategoryId)
+        .gte("occurred_on", start)
+        .lte("occurred_on", end)
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (!selectedError && selectedRows) {
+        selectedExpenses = mapExpenseRows(selectedRows, categoryMap).sort((left, right) => {
+          if (sort === "amount_desc") {
+            if (left.amount === right.amount) {
+              return left.occurredOn < right.occurredOn ? 1 : -1;
+            }
+            return right.amount - left.amount;
+          }
+
+          if (sort === "amount_asc") {
+            if (left.amount === right.amount) {
+              return left.occurredOn < right.occurredOn ? -1 : 1;
+            }
+            return left.amount - right.amount;
+          }
+
+          if (sort === "date_asc") {
+            if (left.occurredOn === right.occurredOn) {
+              return left.amount - right.amount;
+            }
+
+            return left.occurredOn < right.occurredOn ? -1 : 1;
+          }
+
+          if (left.occurredOn === right.occurredOn) {
+            return right.amount - left.amount;
+          }
+
+          return left.occurredOn < right.occurredOn ? 1 : -1;
+        });
+      }
+    }
+
     return {
       targetMonth: start.slice(0, 7),
       monthLabel: formatMonthLabel(start),
       totalAmount: (monthRows ?? []).reduce((sum, item) => sum + item.amount, 0),
       items: Array.from(summaryMap.values()).sort((left, right) => right.total - left.total),
       availableMonths: buildAvailableMonths(allExpenseDates ?? [], targetDate),
-      selectedCategoryId
+      selectedCategoryId,
+      selectedCategoryName: selectedCategoryId
+        ? categoryMap.get(selectedCategoryId) ?? "未設定カテゴリ"
+        : null,
+      selectedSort: sort,
+      selectedExpenses
     };
   } catch {
-    return createEmptyCategoryBreakdownSnapshot(resolveMonthDate(month), selectedCategoryId);
+    return createEmptyCategoryBreakdownSnapshot(resolveMonthDate(month), selectedCategoryId, sort);
   }
 }
 

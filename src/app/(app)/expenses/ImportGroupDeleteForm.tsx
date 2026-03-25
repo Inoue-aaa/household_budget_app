@@ -1,29 +1,25 @@
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { deleteImportGroupAction } from "@/features/import-review/actions";
-import type { SourceType } from "@/lib/finance/types";
-import {
-  formatImportGroupDeleteConfirmation,
-  formatImportGroupDeleteLabel
-} from "@/lib/utils/format";
+import { formatImportGroupDeleteConfirmation } from "@/lib/utils/format";
 
 type ImportGroupDeleteFormProps = {
   importGroupId: string;
-  sourceType: SourceType;
+  className?: string;
 };
 
 export function ImportGroupDeleteForm({
   importGroupId,
-  sourceType
+  className = "button button-secondary compact-button action-button action-button-secondary"
 }: ImportGroupDeleteFormProps) {
   return (
     <form action={deleteImportGroupAction}>
       <input name="importGroupId" type="hidden" value={importGroupId} />
       <ConfirmSubmitButton
-        className="button button-secondary compact-button"
-        confirmationMessage={formatImportGroupDeleteConfirmation(sourceType)}
+        className={className}
+        confirmationMessage={formatImportGroupDeleteConfirmation()}
         testId="expenses-group-delete"
       >
-        {formatImportGroupDeleteLabel(sourceType)}
+        削除
       </ConfirmSubmitButton>
     </form>
   );

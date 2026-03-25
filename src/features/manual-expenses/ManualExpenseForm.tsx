@@ -17,7 +17,18 @@ function todayString() {
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }
 
-export function ManualExpenseForm({ categories, initialOccurredOn }: ManualExpenseFormProps) {
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="required-mark">
+      *
+    </span>
+  );
+}
+
+export function ManualExpenseForm({
+  categories,
+  initialOccurredOn,
+}: ManualExpenseFormProps) {
   const [state, formAction] = useActionState(
     createManualExpenseAction,
     initialManualExpenseFormState
@@ -25,9 +36,15 @@ export function ManualExpenseForm({ categories, initialOccurredOn }: ManualExpen
   const values = state.values;
 
   return (
-    <form action={formAction} className="field-stack" data-testid="manual-expense-form">
+    <form
+      action={formAction}
+      className="field-stack"
+      data-testid="manual-expense-form"
+    >
       <div className="field">
-        <label htmlFor="occurredOn">日付</label>
+        <label htmlFor="occurredOn">
+          日付 <RequiredMark />
+        </label>
         <input
           aria-invalid={Boolean(state.fieldErrors?.occurredOn)}
           data-testid="manual-occurred-on"
@@ -55,11 +72,12 @@ export function ManualExpenseForm({ categories, initialOccurredOn }: ManualExpen
           placeholder="例: スーパー"
           type="text"
         />
-        <p className="field-hint">スーパー、ドラッグストア、交通機関名など。</p>
       </div>
 
       <div className="field">
-        <label htmlFor="title">内容</label>
+        <label htmlFor="title">
+          内容 <RequiredMark />
+        </label>
         <input
           aria-invalid={Boolean(state.fieldErrors?.title)}
           data-testid="manual-title"
@@ -72,11 +90,15 @@ export function ManualExpenseForm({ categories, initialOccurredOn }: ManualExpen
           required
           type="text"
         />
-        {state.fieldErrors?.title ? <p className="error-text">{state.fieldErrors.title}</p> : null}
+        {state.fieldErrors?.title ? (
+          <p className="error-text">{state.fieldErrors.title}</p>
+        ) : null}
       </div>
 
       <div className="field">
-        <label htmlFor="amount">金額</label>
+        <label htmlFor="amount">
+          金額 <RequiredMark />
+        </label>
         <input
           aria-invalid={Boolean(state.fieldErrors?.amount)}
           data-testid="manual-amount"
@@ -91,11 +113,15 @@ export function ManualExpenseForm({ categories, initialOccurredOn }: ManualExpen
           type="number"
         />
         <p className="field-hint">1円以上の整数で入力します。</p>
-        {state.fieldErrors?.amount ? <p className="error-text">{state.fieldErrors.amount}</p> : null}
+        {state.fieldErrors?.amount ? (
+          <p className="error-text">{state.fieldErrors.amount}</p>
+        ) : null}
       </div>
 
       <div className="field">
-        <label htmlFor="categoryId">カテゴリ</label>
+        <label htmlFor="categoryId">
+          カテゴリ <RequiredMark />
+        </label>
         <select
           aria-invalid={Boolean(state.fieldErrors?.categoryId)}
           data-testid="manual-category-id"
@@ -127,15 +153,15 @@ export function ManualExpenseForm({ categories, initialOccurredOn }: ManualExpen
         />
       </div>
 
-      {state.status === "error" ? <p className="error-text">{state.message}</p> : null}
+      {state.status === "error" ? (
+        <p className="error-text">{state.message}</p>
+      ) : null}
 
       <div className="form-footer">
         <SubmitButton pendingLabel="保存中..." testId="manual-submit">
           保存する
         </SubmitButton>
-        <p className="caption">
-          保存時に import_group と expense を同時に作成し、分類履歴にも反映します。
-        </p>
+        <p className="caption">※保存後は支出一覧へ移動します。</p>
       </div>
     </form>
   );

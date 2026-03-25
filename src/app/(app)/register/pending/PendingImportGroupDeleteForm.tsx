@@ -1,28 +1,22 @@
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { deletePendingImportGroupAction } from "@/features/import-review/actions";
-import type { SourceType } from "@/lib/finance/types";
-import {
-  formatImportGroupDeleteConfirmation,
-  formatImportGroupDeleteLabel
-} from "@/lib/utils/format";
+import { formatImportGroupDeleteConfirmation } from "@/lib/utils/format";
 
 type PendingImportGroupDeleteFormProps = {
   importGroupId: string;
-  sourceType: SourceType;
 };
 
 export function PendingImportGroupDeleteForm({
-  importGroupId,
-  sourceType
+  importGroupId
 }: PendingImportGroupDeleteFormProps) {
   return (
     <form action={deletePendingImportGroupAction}>
       <input name="importGroupId" type="hidden" value={importGroupId} />
       <ConfirmSubmitButton
-        className="button button-secondary compact-button"
-        confirmationMessage={formatImportGroupDeleteConfirmation(sourceType)}
+        className="button button-secondary compact-button action-button action-button-secondary"
+        confirmationMessage={formatImportGroupDeleteConfirmation()}
       >
-        {formatImportGroupDeleteLabel(sourceType)}
+        削除
       </ConfirmSubmitButton>
     </form>
   );

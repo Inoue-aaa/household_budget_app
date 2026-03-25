@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import { SubmitButton } from "@/components/SubmitButton";
 import { saveMonthlyBudgetAction } from "@/features/monthly-budget/actions";
 import {
@@ -89,11 +88,8 @@ export function BudgetSettingsForm({
         <p className="caption">
           {initialBudgetAmount != null
             ? `現在の設定額は ${formatCurrency(initialBudgetAmount)} です。対象カテゴリもあわせて更新できます。`
-            : "今月の総予算と対象カテゴリを登録すると、ホームで予算進捗を確認できます。"}
+            : "今月の予算額と対象カテゴリを保存すると、ホームで予算状況を確認できます。"}
         </p>
-        <Link className="button button-secondary" href="/home">
-          ホームに戻る
-        </Link>
       </div>
     </form>
   );

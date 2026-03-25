@@ -11,13 +11,7 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
-  const [state, formAction] = useActionState(signInWithPasswordAction, {
-    ...initialLoginFormState,
-    values: {
-      ...initialLoginFormState.values,
-      email: defaultEmail
-    }
-  });
+  const [state, formAction] = useActionState(signInWithPasswordAction, initialLoginFormState);
 
   return (
     <form action={formAction} className="field-stack">
@@ -25,7 +19,7 @@ export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
         <label htmlFor="email">メールアドレス</label>
         <input
           autoComplete="email"
-          defaultValue={state.values.email}
+          defaultValue=""
           id="email"
           name="email"
           placeholder="you@example.com"
@@ -35,6 +29,7 @@ export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
         <p className="field-hint">
           ご自身のメールアドレスでログインします。自分専用の家計簿として使う前提です。
         </p>
+        {defaultEmail ? <p className="caption">利用予定のメールアドレス: {defaultEmail}</p> : null}
         {state.fieldErrors?.email ? <p className="error-text">{state.fieldErrors.email}</p> : null}
       </div>
 

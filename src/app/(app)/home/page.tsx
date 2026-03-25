@@ -13,7 +13,7 @@ function getHomeNotice(code?: string) {
   return {
     tone: "success" as const,
     title: "予算設定を保存しました",
-    description: "ホームの予算進捗カードに最新の設定を反映しました。"
+    description: "ホームの予算カードに最新の設定を反映しました。"
   };
 }
 
@@ -45,22 +45,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <div className="surface stat-card stat-card-accent stat-card-wide">
           <span className="stat-label">{currentMonth}の支出合計</span>
           <strong className="stat-value">{formatCurrency(snapshot.monthlyTotal)}</strong>
-          <p className="section-copy stat-support-copy">
-            保存済みの支出だけを対象に、今月の合計金額を表示しています。
-          </p>
         </div>
       </section>
 
       <SectionCard
-        title="カテゴリ別サマリー"
-        description="今月の支出が大きいカテゴリを上位3件まで表示しています。続きは詳細画面で確認できます。"
+        title="カテゴリ別支出"
+        description="今月の支出が大きいカテゴリを上位3件まで表示しています。"
       >
         <div className="list">
           {snapshot.categorySummary.length === 0 ? (
             <div className="empty-state">
               <p className="section-title">今月のカテゴリ別支出はまだありません</p>
               <p className="section-copy">
-                手入力やレシート review を保存すると、ここにカテゴリ別サマリーが表示されます。
+                手入力やレシート review を保存すると、ここにカテゴリ別支出が表示されます。
               </p>
             </div>
           ) : (
@@ -84,7 +81,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               >
                 <div>
                   <p className="list-title">カテゴリ別詳細</p>
-                  <p className="list-meta">{currentMonth}のカテゴリ別支出を金額順で確認できます。</p>
                 </div>
                 <strong>›</strong>
               </Link>

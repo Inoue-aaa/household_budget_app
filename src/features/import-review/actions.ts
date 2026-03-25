@@ -77,6 +77,16 @@ const updateDraftSchema = z.object({
   note: z.string().trim().max(300, "メモは300文字以内で入力してください。").optional()
 });
 
+const bulkDraftItemSchema = z.object({
+  draftId: z.string().uuid(),
+  title: z.string().trim().min(1).max(120),
+  occurredOn: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/),
+  merchantName: z.string().trim().max(120).optional(),
+  amount: z.string().trim().min(1),
+  categoryId: z.string().uuid(),
+  note: z.string().trim().max(300).optional()
+});
+
 function isReviewDraftFieldName(value: string): value is ReviewDraftFieldName {
   return ["occurredOn", "merchantName", "title", "amount", "categoryId", "note"].includes(value);
 }
@@ -440,6 +450,54 @@ export async function confirmDraftsAction(formData: FormData) {
 
   const importGroupId = parsed.data.importGroupId;
   const supabase = await createServerSupabaseClient();
+  const draftsPayload = formData.get("draftsPayload")?.toString();
+
+  if (draftsPayload) {
+    let payload: unknown;
+
+    try {
+      payload = JSON.parse(draftsPayload);
+    } catch {
+      redirect(reviewPath(importGroupId, "confirm-error"));
+    }
+
+    const parsedPayload = z.array(bulkDraftItemSchema).safeParse(payload);
+
+    if (!parsedPayload.success) {
+      redirect(reviewPath(importGroupId, "confirm-error"));
+    }
+
+    for (const item of parsedPayload.data) {
+      const normalizedAmount = Number(item.amount);
+
+      if (!Number.isInteger(normalizedAmount) || normalizedAmount <= 0) {
+        redirect(reviewPath(importGroupId, "confirm-error"));
+      }
+
+      const { error: updateError } = await supabase
+        .from("expense_drafts")
+        .update({
+          occurred_on: item.occurredOn,
+          merchant_name: item.merchantName || null,
+          title: item.title,
+          amount: normalizedAmount,
+          suggested_category_id: item.categoryId,
+          note: item.note || null,
+          needs_review: deriveNeedsReview({
+            title: item.title,
+            amount: normalizedAmount,
+            categoryId: item.categoryId
+          })
+        })
+        .eq("id", item.draftId)
+        .eq("import_group_id", importGroupId);
+
+      if (updateError) {
+        redirect(reviewPath(importGroupId, "confirm-error"));
+      }
+    }
+  }
+
   const { error } = await supabase.rpc("confirm_import_group", {
     p_import_group_id: importGroupId
   });

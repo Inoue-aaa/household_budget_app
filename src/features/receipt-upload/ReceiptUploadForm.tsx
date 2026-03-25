@@ -31,7 +31,7 @@ function formatFileLog(file: File) {
   return {
     name: file.name,
     type: file.type,
-    size: file.size
+    size: file.size,
   };
 }
 
@@ -62,19 +62,22 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
   });
 }
 
-function canvasToJpegFile(canvas: HTMLCanvasElement, originalFile: File): Promise<File> {
+function canvasToJpegFile(
+  canvas: HTMLCanvasElement,
+  originalFile: File
+): Promise<File> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          reject(new Error("画像の圧縮に失敗しました。"));
+          reject(new Error("画像の変換に失敗しました。"));
           return;
         }
 
         resolve(
           new File([blob], renameToJpeg(originalFile.name), {
             type: "image/jpeg",
-            lastModified: Date.now()
+            lastModified: Date.now(),
           })
         );
       },
@@ -87,7 +90,8 @@ function canvasToJpegFile(canvas: HTMLCanvasElement, originalFile: File): Promis
 async function compressImageFile(file: File) {
   const image = await loadImageFromFile(file);
   const longestEdge = Math.max(image.naturalWidth, image.naturalHeight);
-  const scale = longestEdge > TARGET_LONG_EDGE_PX ? TARGET_LONG_EDGE_PX / longestEdge : 1;
+  const scale =
+    longestEdge > TARGET_LONG_EDGE_PX ? TARGET_LONG_EDGE_PX / longestEdge : 1;
 
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -95,7 +99,7 @@ async function compressImageFile(file: File) {
   const context = canvas.getContext("2d");
 
   if (!context) {
-    throw new Error("画像変換に必要な canvas を初期化できませんでした。");
+    throw new Error("画像変換に必要な canvas を利用できませんでした。");
   }
 
   canvas.width = width;
@@ -130,12 +134,12 @@ async function prepareUploadFiles(files: File[]) {
     } catch (error) {
       console.error("[receipt-upload] compression failed", {
         file: formatFileLog(file),
-        error
+        error,
       });
 
       if (file.size > MAX_TOTAL_UPLOAD_SIZE_BYTES / 2) {
         throw new Error(
-          "画像の圧縮に失敗しました。別の画像を使うか、画像サイズを小さくしてからお試しください。"
+          "画像の変換に失敗しました。別の画像を使うか、画像サイズを小さくしてからお試しください。"
         );
       }
 
@@ -147,7 +151,9 @@ async function prepareUploadFiles(files: File[]) {
 
   if (totalSize > MAX_TOTAL_UPLOAD_SIZE_BYTES) {
     throw new Error(
-      `送信サイズが大きすぎます。合計 ${formatMegaBytes(totalSize)} あるため、より小さい画像でお試しください。`
+      `送信サイズが大きすぎます。合計 ${formatMegaBytes(
+        totalSize
+      )} あるため、より小さい画像でお試しください。`
     );
   }
 
@@ -159,7 +165,11 @@ export function ReceiptUploadForm() {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFileItem[]>([]);
   const [clientError, setClientError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const previewCountLabel = useMemo(() => `${selectedFiles.length}/3 枚`, [selectedFiles.length]);
+
+  const previewCountLabel = useMemo(
+    () => `${selectedFiles.length}/3枚`,
+    [selectedFiles.length]
+  );
   const selectedTotalSize = useMemo(
     () => selectedFiles.reduce((sum, file) => sum + file.size, 0),
     [selectedFiles]
@@ -176,8 +186,14 @@ export function ReceiptUploadForm() {
           try {
             setClientError(null);
 
-            const files = Array.from(inputRef.current?.files ?? []).slice(0, MAX_UPLOAD_FILES);
-            console.error("[receipt-upload] submit files", files.map(formatFileLog));
+            const files = Array.from(inputRef.current?.files ?? []).slice(
+              0,
+              MAX_UPLOAD_FILES
+            );
+            console.error(
+              "[receipt-upload] submit files",
+              files.map(formatFileLog)
+            );
 
             if (files.length === 0) {
               setClientError("画像を1枚以上選択してください。");
@@ -185,10 +201,15 @@ export function ReceiptUploadForm() {
             }
 
             const preparedFiles = await prepareUploadFiles(files);
-            console.error("[receipt-upload] prepared files", preparedFiles.map(formatFileLog));
+            console.error(
+              "[receipt-upload] prepared files",
+              preparedFiles.map(formatFileLog)
+            );
 
             const formData = new FormData();
-            preparedFiles.forEach((file) => formData.append("images", file, file.name));
+            preparedFiles.forEach((file) =>
+              formData.append("images", file, file.name)
+            );
 
             await createReceiptReviewFromUploadAction(formData);
           } catch (error) {
@@ -196,7 +217,7 @@ export function ReceiptUploadForm() {
             setClientError(
               error instanceof Error
                 ? error.message
-                : "アップロード準備中にエラーが発生しました。画像を選び直して、もう一度お試しください。"
+                : "アップロード中にエラーが発生しました。画像を選び直して、もう一度お試しください。"
             );
           }
         });
@@ -214,8 +235,14 @@ export function ReceiptUploadForm() {
             try {
               setClientError(null);
 
-              const files = Array.from(event.currentTarget.files ?? []).slice(0, MAX_UPLOAD_FILES);
-              console.error("[receipt-upload] selected files", files.map(formatFileLog));
+              const files = Array.from(event.currentTarget.files ?? []).slice(
+                0,
+                MAX_UPLOAD_FILES
+              );
+              console.error(
+                "[receipt-upload] selected files",
+                files.map(formatFileLog)
+              );
 
               const unsupportedHeicFile = files.find(isUnsupportedHeicFile);
 
@@ -237,14 +264,14 @@ export function ReceiptUploadForm() {
                   id: `${file.name}-${file.lastModified}`,
                   name: file.name,
                   type: file.type,
-                  size: file.size
+                  size: file.size,
                 }))
               );
             } catch (error) {
               console.error("[receipt-upload] selection handler crashed", error);
               setSelectedFiles([]);
               setClientError(
-                "画像の読み込み準備でエラーが発生しました。画像を選び直して、もう一度お試しください。"
+                "画像の読み込み時にエラーが発生しました。画像を選び直して、もう一度お試しください。"
               );
             }
           }}
@@ -253,8 +280,8 @@ export function ReceiptUploadForm() {
           type="file"
         />
         <p className="field-hint">
-          1枚から3枚までのレシート画像を選択してください。現在: {previewCountLabel} / 合計{" "}
-          {formatMegaBytes(selectedTotalSize)}
+          1枚から3枚までのレシート画像を選択してください。現在:{" "}
+          {previewCountLabel} / 合計 {formatMegaBytes(selectedTotalSize)}
         </p>
         {clientError ? <p className="error-text">{clientError}</p> : null}
       </div>
@@ -279,11 +306,8 @@ export function ReceiptUploadForm() {
           disabled={isPending}
           type="submit"
         >
-          {isPending ? "読み取り候補を作成中..." : "読み取り候補を作成して確認画面へ進む"}
+          {isPending ? "読み取り中..." : "読み取る"}
         </button>
-        <p className="caption">
-          iPhone Safari では送信前に画像を軽く圧縮して、review まで進みやすい構成にしています。
-        </p>
       </div>
     </form>
   );

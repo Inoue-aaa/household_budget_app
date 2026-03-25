@@ -62,9 +62,14 @@ export default async function ExpensesReportPage({ searchParams }: ExpensesRepor
         />
       </SectionCard>
 
-      <Link className="button button-secondary compact-button bottom-back-button" href="/expenses">
-        back
-      </Link>
+      <div className="single-action-row">
+        <Link
+          className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
+          href="/expenses"
+        >
+          back
+        </Link>
+      </div>
     </div>
   );
 }

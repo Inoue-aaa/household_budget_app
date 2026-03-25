@@ -4,51 +4,51 @@ export const APP_THEMES = [
     label: "Midnight",
     description: "深いネイビーを基調にした、標準のダークテーマです。",
     preview: {
-      background: "#0a1220",
-      surface: "#111a2a",
-      accent: "#5f8fe8"
-    }
+      background: "#09111f",
+      surface: "#13233a",
+      accent: "#6f9cf0",
+    },
   },
   {
     name: "beige",
     label: "Beige",
-    description: "やわらかなグレージュで整えた、温かみのあるテーマです。",
+    description: "温かみのあるグレージュで整えた、落ち着いたテーマです。",
     preview: {
-      background: "#ebe1d3",
-      surface: "#d7c6b2",
-      accent: "#8a6a45"
-    }
+      background: "#16120f",
+      surface: "#241d18",
+      accent: "#c79a66",
+    },
   },
   {
     name: "lime",
     label: "Lime",
     description: "深いオリーブを効かせた、引き締まったテーマです。",
     preview: {
-      background: "#10150f",
-      surface: "#18211a",
-      accent: "#91bf61"
-    }
+      background: "#0d130d",
+      surface: "#192219",
+      accent: "#9fc85f",
+    },
   },
   {
     name: "pink",
     label: "Pink",
     description: "ローズとプラムを含んだ、上品で落ち着いたテーマです。",
     preview: {
-      background: "#171117",
-      surface: "#241b24",
-      accent: "#cf86aa"
-    }
+      background: "#151016",
+      surface: "#241a27",
+      accent: "#d48db0",
+    },
   },
   {
     name: "sky",
     label: "Sky",
     description: "スレートブルー寄りで、軽やかに見えるテーマです。",
     preview: {
-      background: "#0d1623",
-      surface: "#152334",
-      accent: "#68b2e1"
-    }
-  }
+      background: "#0d1622",
+      surface: "#172838",
+      accent: "#75b8e8",
+    },
+  },
 ] as const;
 
 export type AppThemeName = (typeof APP_THEMES)[number]["name"];

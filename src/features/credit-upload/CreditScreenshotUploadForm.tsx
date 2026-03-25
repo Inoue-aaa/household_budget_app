@@ -12,7 +12,10 @@ type PreviewItem = {
 
 export function CreditScreenshotUploadForm() {
   const [previews, setPreviews] = useState<PreviewItem[]>([]);
-  const previewCountLabel = useMemo(() => `${previews.length}/3 枚`, [previews.length]);
+  const previewCountLabel = useMemo(
+    () => `${previews.length}/3枚`,
+    [previews.length]
+  );
 
   useEffect(() => {
     return () => {
@@ -41,7 +44,7 @@ export function CreditScreenshotUploadForm() {
             const nextPreviews = files.map((file) => ({
               id: `${file.name}-${file.lastModified}`,
               name: file.name,
-              url: URL.createObjectURL(file)
+              url: URL.createObjectURL(file),
             }));
 
             setPreviews(nextPreviews);
@@ -50,7 +53,8 @@ export function CreditScreenshotUploadForm() {
           type="file"
         />
         <p className="field-hint">
-          1枚から3枚までのクレジット明細画像を読み取ります。現在: {previewCountLabel}
+          1枚から3枚までのクレジット明細画像を選択してください。現在:{" "}
+          {previewCountLabel}
         </p>
       </div>
 
@@ -59,7 +63,11 @@ export function CreditScreenshotUploadForm() {
           {previews.map((preview) => (
             <div className="upload-preview-card" key={preview.id}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img alt={preview.name} className="upload-preview-image" src={preview.url} />
+              <img
+                alt={preview.name}
+                className="upload-preview-image"
+                src={preview.url}
+              />
               <p className="upload-preview-name">{preview.name}</p>
             </div>
           ))}
@@ -67,13 +75,9 @@ export function CreditScreenshotUploadForm() {
       ) : null}
 
       <div className="form-footer">
-        <SubmitButton pendingLabel="明細候補を作成中..." testId="credit-upload-submit">
-          明細候補を作成して確認画面へ進む
+        <SubmitButton pendingLabel="読み取り中..." testId="credit-upload-submit">
+          読み取る
         </SubmitButton>
-        <p className="caption">
-          フェーズ1では 1 明細を 1 支出として扱います。OCR は現時点では dummy 実装で、後から差し替え
-          可能です。
-        </p>
       </div>
     </form>
   );

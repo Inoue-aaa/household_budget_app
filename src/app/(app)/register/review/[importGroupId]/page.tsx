@@ -22,7 +22,7 @@ export default async function ReviewPage({ params, searchParams }: ReviewPagePro
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack review-page-shell">
       <ReviewNotice notice={notice} />
       <DraftReviewPanel snapshot={snapshot} />
     </div>

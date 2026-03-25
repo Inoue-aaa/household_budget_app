@@ -20,13 +20,13 @@ export default async function ExpenseHistoryPage({
     <div className="page-stack">
       <ScreenHeader
         eyebrow="History"
-        title="登録履歴一覧"
-        description="保存済み支出を日ごとに振り返る画面です。対象日を選ぶと、その日の詳細内訳へ進めます。"
+        title="登録履歴"
+        description="保存済み支出を日ごとに振り返る画面です。対象日を選ぶと、その日の詳細へ移動できます。"
       />
 
       <SectionCard
         title="表示月"
-        description="年月を切り替えると、その月の登録履歴を日ごとに確認できます。"
+        description="月を切り替えると、その月の登録履歴を日別に確認できます。"
       >
         <form className="field-stack" method="get">
           <div className="field">
@@ -39,19 +39,24 @@ export default async function ExpenseHistoryPage({
               ))}
             </select>
           </div>
-          <button className="button button-secondary" type="submit">
-            この月を表示
-          </button>
+          <div className="single-action-row">
+            <button
+              className="button button-secondary compact-button action-button action-button-secondary"
+              type="submit"
+            >
+              この月を表示
+            </button>
+          </div>
         </form>
       </SectionCard>
 
       <section className="stats-grid">
         <div className="surface stat-card stat-card-accent">
-          <span className="stat-label">表示件数</span>
+          <span className="stat-label">品目件数</span>
           <strong className="stat-value">{snapshot.totalCount}件</strong>
         </div>
         <div className="surface stat-card">
-          <span className="stat-label">表示合計</span>
+          <span className="stat-label">支出合計</span>
           <strong className="stat-value">
             {formatCurrency(snapshot.totalAmount)}
           </strong>
@@ -60,14 +65,14 @@ export default async function ExpenseHistoryPage({
 
       <SectionCard
         title={`${snapshot.monthLabel}の日別一覧`}
-        description="対象日を押すと、その日の合計金額と支出明細を確認できます。"
+        description="対象月の日ごとの合計金額と件数を一覧で確認できます。"
       >
         <div className="list">
           {snapshot.days.length === 0 ? (
             <div className="empty-state">
-              <p className="section-title">この月の登録履歴はまだありません</p>
+              <p className="section-title">この月の登録履歴はありません</p>
               <p className="section-copy">
-                保存済み支出が増えると、ここに日別の一覧が表示されます。
+                保存済み支出が増えると、ここに日別一覧として表示されます。
               </p>
             </div>
           ) : (
@@ -88,12 +93,14 @@ export default async function ExpenseHistoryPage({
         </div>
       </SectionCard>
 
-      <Link
-        className="button button-secondary compact-button bottom-back-button"
-        href="/expenses"
-      >
-        back
-      </Link>
+      <div className="single-action-row">
+        <Link
+          className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
+          href="/expenses"
+        >
+          back
+        </Link>
+      </div>
     </div>
   );
 }
