@@ -13,7 +13,7 @@ import {
   type DraftReviewEditableValues
 } from "@/features/import-review/DraftReviewRowForm";
 import type { DraftReviewSnapshot, SourceType } from "@/lib/finance/types";
-import { formatCurrency, formatDisplayDate, formatSourceLabel } from "@/lib/utils/format";
+import { formatDisplayDate, formatSourceLabel } from "@/lib/utils/format";
 
 type DraftReviewPanelProps = {
   snapshot: DraftReviewSnapshot;
@@ -65,8 +65,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
             <p className="eyebrow">Review</p>
             <h1 className="screen-title">確認画面</h1>
             <p className="screen-description">
-              読み取り結果を見直して、必要があれば内容を整えてください。最後にまとめて保存して、
-              支出一覧へ反映します。
+              必要な項目を整えてから、各明細を確認済みにしてください。
             </p>
           </div>
           <span className="pill pill-accent">{formatSourceLabel(snapshot.sourceType)}</span>
@@ -91,25 +90,15 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
 
       <section className="surface section-card review-surface review-surface-tight review-surface-wide">
         <h2 className="section-title">未確認の明細</h2>
-        <p className="section-copy">
-          まだチェックしていない明細だけをここに表示しています。確認済みにすると一覧から外れます。
-        </p>
-        <div style={{ height: 16 }} />
         {remainingItems.length === 0 ? (
-          <p className="section-copy">すべての明細が確認済みです。このまま保存して確定できます。</p>
+          <p className="section-copy">
+            すべての明細が確認済みです。このまま保存して確定できます。
+          </p>
         ) : (
-          <div className="attention-list">
-            {remainingItems.map((item) => (
-              <div className="attention-item" key={item.id}>
-                <div>
-                  <p className="list-title">{item.title || `明細 ${item.lineIndex + 1}`}</p>
-                  <p className="list-meta">
-                    金額: {item.amount == null ? "未入力" : formatCurrency(item.amount)} ・ カテゴリ:{" "}
-                    {item.categoryName ?? "未設定"}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <div className="attention-item attention-item-compact">
+            <p className="section-copy">
+              未確認の明細が {remainingItems.length} 件あります。リストから順にチェックしてから、まとめて保存してください。
+            </p>
           </div>
         )}
       </section>
@@ -122,7 +111,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
           </div>
         </div>
 
-        <div style={{ height: 16 }} />
+        <div style={{ height: 12 }} />
 
         {snapshot.items.length === 0 ? (
           <div className="empty-state">
@@ -149,9 +138,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
                     <div>
                       <p className="list-title">明細 {item.lineIndex + 1}</p>
                       <p className="list-meta">
-                        {editableItem.values.merchantName
-                          ? `${editableItem.values.merchantName} ・ `
-                          : ""}
+                        {editableItem.values.merchantName ? `${editableItem.values.merchantName} ・ ` : ""}
                         {editableItem.values.occurredOn
                           ? formatDisplayDate(editableItem.values.occurredOn)
                           : "日付未設定"}
@@ -221,14 +208,12 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
         <h2 className="section-title">保存して確定</h2>
         <p className="section-copy">
           {canConfirm
-            ? "すべて確認済みです。まとめて保存して、expenses に反映できます。"
+            ? "すべて確認済みです。まとめて保存して、支出一覧へ反映できます。"
             : `未確認が ${remainingItems.length} 件あります。すべて確認済みにしてから保存してください。`}
         </p>
-        <div style={{ height: 16 }} />
+        <div style={{ height: 14 }} />
         {snapshot.items.length === 0 ? (
-          <p className="section-copy">
-            確定できる明細がありません。必要に応じて明細を新規追加してください。
-          </p>
+          <p className="section-copy">確定できる明細がありません。必要に応じて明細を追加してください。</p>
         ) : (
           <form action={confirmDraftsAction}>
             <input name="importGroupId" type="hidden" value={snapshot.importGroupId} />
@@ -243,9 +228,9 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
               )}
             />
             <SubmitButton
+              disabled={!canConfirm}
               pendingLabel="保存して確定中..."
               testId="review-confirm-submit"
-              disabled={!canConfirm}
             >
               保存して確定
             </SubmitButton>

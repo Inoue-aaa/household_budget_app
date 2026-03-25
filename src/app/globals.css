@@ -1002,7 +1002,7 @@ button {
 }
 
 .review-summary {
-  padding: 14px;
+  padding: 12px;
   border-color: var(--border-strong);
   background:
     linear-gradient(180deg, var(--surface-strong), var(--surface)),
@@ -1030,11 +1030,11 @@ button {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 14px 0 10px;
+  margin: 10px 0 8px;
 }
 
 .review-summary-card {
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--card-bg-soft);
@@ -1066,8 +1066,12 @@ button {
     0 0 24px var(--accent-glow);
 }
 
+.attention-item-compact {
+  padding: 10px 12px;
+}
+
 .review-row-card {
-  padding: 10px 10px;
+  padding: 8px 9px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background:
@@ -1094,9 +1098,9 @@ button {
 .review-row-top {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .review-row-top-right {
@@ -1110,7 +1114,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -1118,6 +1122,7 @@ button {
   color: var(--muted-strong);
   font-size: 0.84rem;
   transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .review-check-toggle-attention {
@@ -1185,12 +1190,12 @@ button {
 
 .review-inline-grid {
   display: grid;
-  gap: 10px 12px;
-  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  gap: 8px 10px;
+  grid-template-columns: repeat(auto-fit, minmax(164px, 1fr));
 }
 
 .review-inline-grid-wide {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(164px, 1fr));
 }
 
 .review-row-form {
@@ -1201,10 +1206,22 @@ button {
 .review-form-control {
   width: 100%;
   min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  font-size: 16px;
+  line-height: 1.25;
 }
 
 .review-form-textarea {
-  min-height: 40px;
+  min-height: 56px;
+}
+
+.review-field {
+  gap: 4px;
+}
+
+.review-field label {
+  font-size: 0.85rem;
 }
 
 .compact-button {
@@ -1694,8 +1711,8 @@ button {
 
   .review-surface.section-card,
   .review-surface.review-summary {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .review-inline-grid {
@@ -1709,8 +1726,8 @@ button {
   }
 
   .review-row-top-right {
-    width: 100%;
-    align-items: stretch;
+    width: auto;
+    align-items: flex-start;
   }
 
   .budget-settings-link {

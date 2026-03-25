@@ -32,7 +32,7 @@ export function DraftReviewRowForm({
   return (
     <div className="field-stack review-row-form">
       <div className="review-inline-grid review-inline-grid-wide">
-        <div className="field">
+        <div className="field review-field">
           <label htmlFor={`occurredOn-${item.id}`}>日付</label>
           <input
             className="review-form-control"
@@ -46,7 +46,7 @@ export function DraftReviewRowForm({
           />
         </div>
 
-        <div className="field">
+        <div className="field review-field">
           <label htmlFor={`merchantName-${item.id}`}>{merchantLabel}</label>
           <input
             className="review-form-control"
@@ -61,7 +61,7 @@ export function DraftReviewRowForm({
         </div>
       </div>
 
-      <div className="field">
+      <div className="field review-field">
         <label htmlFor={`title-${item.id}`}>内容</label>
         <input
           className="review-form-control"
@@ -76,7 +76,7 @@ export function DraftReviewRowForm({
       </div>
 
       <div className="review-inline-grid review-inline-grid-wide">
-        <div className="field">
+        <div className="field review-field">
           <label htmlFor={`amount-${item.id}`}>金額</label>
           <input
             className="review-form-control"
@@ -93,7 +93,7 @@ export function DraftReviewRowForm({
           />
         </div>
 
-        <div className="field">
+        <div className="field review-field">
           <label htmlFor={`category-${item.id}`}>カテゴリ</label>
           <select
             className="review-form-control"
@@ -113,7 +113,7 @@ export function DraftReviewRowForm({
         </div>
       </div>
 
-      <div className="field">
+      <div className="field review-field">
         <label htmlFor={`note-${item.id}`}>メモ</label>
         <textarea
           className="review-form-control review-form-textarea"
