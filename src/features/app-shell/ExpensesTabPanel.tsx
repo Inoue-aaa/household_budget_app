@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
+import { BarChart3, NotebookPen } from "lucide-react";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -56,7 +57,12 @@ export function ExpensesTabPanel({
 
       <Link className="surface section-card section-card-link" href="/expenses/reports">
         <div className="section-card-link-header">
-          <h2 className="section-title">支出レポート</h2>
+          <div className="section-card-link-title">
+            <span className="section-card-link-icon" aria-hidden="true">
+              <BarChart3 size={18} />
+            </span>
+            <h2 className="section-title">支出レポート</h2>
+          </div>
           <span aria-hidden="true" className="section-card-link-arrow">
             ›
           </span>
@@ -68,7 +74,12 @@ export function ExpensesTabPanel({
 
       <Link className="surface section-card section-card-link" href="/expenses/history">
         <div className="section-card-link-header">
-          <h2 className="section-title">登録履歴</h2>
+          <div className="section-card-link-title">
+            <span className="section-card-link-icon section-card-link-icon-soft" aria-hidden="true">
+              <NotebookPen size={18} />
+            </span>
+            <h2 className="section-title">登録履歴</h2>
+          </div>
           <span aria-hidden="true" className="section-card-link-arrow">
             ›
           </span>

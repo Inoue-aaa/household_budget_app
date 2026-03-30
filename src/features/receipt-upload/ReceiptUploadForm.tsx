@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { OcrProcessingDialog } from "@/components/OcrProcessingDialog";
 import { createReceiptReviewFromUploadAction } from "@/features/import-review/actions";
 
 type SelectedFileItem = {
@@ -64,7 +66,7 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
 
 function canvasToJpegFile(
   canvas: HTMLCanvasElement,
-  originalFile: File
+  originalFile: File,
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -78,11 +80,11 @@ function canvasToJpegFile(
           new File([blob], renameToJpeg(originalFile.name), {
             type: "image/jpeg",
             lastModified: Date.now(),
-          })
+          }),
         );
       },
       "image/jpeg",
-      TARGET_JPEG_QUALITY
+      TARGET_JPEG_QUALITY,
     );
   });
 }
@@ -115,7 +117,7 @@ async function prepareUploadFiles(files: File[]) {
   for (const file of files) {
     if (isUnsupportedHeicFile(file)) {
       throw new Error(
-        "HEIC / HEIF 画像はまだ未対応です。iPhone の写真を JPEG または PNG に変換してからお試しください。"
+        "HEIC / HEIF 画像はまだ未対応です。iPhone の写真を JPEG または PNG に変換してからお試しください。",
       );
     }
 
@@ -139,7 +141,7 @@ async function prepareUploadFiles(files: File[]) {
 
       if (file.size > MAX_TOTAL_UPLOAD_SIZE_BYTES / 2) {
         throw new Error(
-          "画像の変換に失敗しました。別の画像を使うか、画像サイズを小さくしてからお試しください。"
+          "画像の変換に失敗しました。別の画像を使うか、画像サイズを小さくしてからお試しください。",
         );
       }
 
@@ -152,8 +154,8 @@ async function prepareUploadFiles(files: File[]) {
   if (totalSize > MAX_TOTAL_UPLOAD_SIZE_BYTES) {
     throw new Error(
       `送信サイズが大きすぎます。合計 ${formatMegaBytes(
-        totalSize
-      )} あるため、より小さい画像でお試しください。`
+        totalSize,
+      )} あるため、より小さい画像でお試しください。`,
     );
   }
 
@@ -168,11 +170,11 @@ export function ReceiptUploadForm() {
 
   const previewCountLabel = useMemo(
     () => `${selectedFiles.length}/3枚`,
-    [selectedFiles.length]
+    [selectedFiles.length],
   );
   const selectedTotalSize = useMemo(
     () => selectedFiles.reduce((sum, file) => sum + file.size, 0),
-    [selectedFiles]
+    [selectedFiles],
   );
 
   return (
@@ -188,11 +190,11 @@ export function ReceiptUploadForm() {
 
             const files = Array.from(inputRef.current?.files ?? []).slice(
               0,
-              MAX_UPLOAD_FILES
+              MAX_UPLOAD_FILES,
             );
             console.error(
               "[receipt-upload] submit files",
-              files.map(formatFileLog)
+              files.map(formatFileLog),
             );
 
             if (files.length === 0) {
@@ -203,21 +205,25 @@ export function ReceiptUploadForm() {
             const preparedFiles = await prepareUploadFiles(files);
             console.error(
               "[receipt-upload] prepared files",
-              preparedFiles.map(formatFileLog)
+              preparedFiles.map(formatFileLog),
             );
 
             const formData = new FormData();
             preparedFiles.forEach((file) =>
-              formData.append("images", file, file.name)
+              formData.append("images", file, file.name),
             );
 
             await createReceiptReviewFromUploadAction(formData);
           } catch (error) {
+            if (isRedirectError(error)) {
+              throw error;
+            }
+
             console.error("[receipt-upload] submit handler crashed", error);
             setClientError(
               error instanceof Error
                 ? error.message
-                : "アップロード中にエラーが発生しました。画像を選び直して、もう一度お試しください。"
+                : "アップロード中にエラーが発生しました。画像を選び直して、もう一度お試しください。",
             );
           }
         });
@@ -237,11 +243,11 @@ export function ReceiptUploadForm() {
 
               const files = Array.from(event.currentTarget.files ?? []).slice(
                 0,
-                MAX_UPLOAD_FILES
+                MAX_UPLOAD_FILES,
               );
               console.error(
                 "[receipt-upload] selected files",
-                files.map(formatFileLog)
+                files.map(formatFileLog),
               );
 
               const unsupportedHeicFile = files.find(isUnsupportedHeicFile);
@@ -250,11 +256,11 @@ export function ReceiptUploadForm() {
                 event.currentTarget.value = "";
                 setSelectedFiles([]);
                 setClientError(
-                  "HEIC / HEIF 画像はまだ未対応です。iPhone の写真を JPEG または PNG に変換してからお試しください。"
+                  "HEIC / HEIF 画像はまだ未対応です。iPhone の写真を JPEG または PNG に変換してからお試しください。",
                 );
                 console.error(
                   "[receipt-upload] unsupported image selected",
-                  formatFileLog(unsupportedHeicFile)
+                  formatFileLog(unsupportedHeicFile),
                 );
                 return;
               }
@@ -265,13 +271,16 @@ export function ReceiptUploadForm() {
                   name: file.name,
                   type: file.type,
                   size: file.size,
-                }))
+                })),
               );
             } catch (error) {
-              console.error("[receipt-upload] selection handler crashed", error);
+              console.error(
+                "[receipt-upload] selection handler crashed",
+                error,
+              );
               setSelectedFiles([]);
               setClientError(
-                "画像の読み込み時にエラーが発生しました。画像を選び直して、もう一度お試しください。"
+                "画像の読み込み時にエラーが発生しました。画像を選び直して、もう一度お試しください。",
               );
             }
           }}
@@ -280,8 +289,7 @@ export function ReceiptUploadForm() {
           type="file"
         />
         <p className="field-hint">
-          1枚から3枚までのレシート画像を選択してください。現在:{" "}
-          {previewCountLabel} / 合計 {formatMegaBytes(selectedTotalSize)}
+          現在: {previewCountLabel} / 合計 {formatMegaBytes(selectedTotalSize)}
         </p>
         {clientError ? <p className="error-text">{clientError}</p> : null}
       </div>
@@ -309,6 +317,12 @@ export function ReceiptUploadForm() {
           {isPending ? "読み取り中..." : "読み取る"}
         </button>
       </div>
+
+      <OcrProcessingDialog
+        description="確認用の明細を準備しています。数秒かかることがあります。"
+        open={isPending}
+        title="レシートを読み取っています…"
+      />
     </form>
   );
 }

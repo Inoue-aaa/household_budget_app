@@ -3,64 +3,59 @@ import type { CategoryOption } from "@/lib/finance/types";
 
 const categoryKeywords: Record<string, string[]> = {
   food: [
-    "弁当",
     "おにぎり",
-    "お茶",
+    "弁当",
+    "パン",
+    "菓子",
     "飲料",
     "ジュース",
     "コーヒー",
-    "珈琲",
-    "パン",
-    "食パン",
-    "菓子",
-    "スナック",
-    "チョコ",
-    "牛乳",
-    "たまご",
-    "卵",
     "野菜",
     "肉",
     "魚",
+    "牛乳",
+    "たまご",
     "豆腐",
-    "ヨーグルト",
-    "総菜",
     "惣菜",
+    "ラーメン",
     "うどん",
-    "そば",
-    "ラーメン"
+    "パスタ",
+    "スナック",
+    "チョコ",
+    "アイス",
+    "キャンディ",
+    "ヨーグルト",
+    "サンド"
   ],
   "daily-necessities": [
     "マスク",
     "ティッシュ",
     "洗剤",
     "トイレットペーパー",
-    "トイレツトペーパー",
     "石鹸",
-    "せっけん",
     "電池",
     "文具",
-    "ノート",
-    "ペン",
     "ラップ",
-    "ごみ袋",
     "ゴミ袋",
     "キッチンペーパー",
     "スポンジ",
+    "歯ブラシ",
+    "歯磨き粉",
     "除菌",
-    "ウェットティッシュ"
+    "ペン",
+    "ノート"
   ],
-  health: ["薬", "風邪薬", "鎮痛剤", "胃薬", "湿布", "目薬", "鼻炎", "整腸", "ビタミン"],
+  health: ["薬", "風邪薬", "鎮痛剤", "胃薬", "湿布", "目薬", "ビタミン", "整腸剤"],
   "fashion-beauty": [
     "シャンプー",
-    "トリートメント",
     "化粧品",
     "スキンケア",
     "ヘアケア",
-    "洗顔",
     "インナー",
     "シャツ",
     "靴下",
-    "ソックス",
+    "美容",
+    "コスメ",
     "下着"
   ],
   other: []
@@ -73,9 +68,11 @@ const strongNonFoodKeywords = [
   "電池",
   "文具",
   "ラップ",
-  "トイレットペーパー",
-  "ごみ袋",
-  "ゴミ袋"
+  "ゴミ袋",
+  "石鹸",
+  "スポンジ",
+  "歯ブラシ",
+  "歯磨き粉"
 ];
 
 const classifier = new RuleFirstDummyClassifier();
@@ -130,7 +127,6 @@ export async function suggestCategoryIdForDraft(
   const firstSuggestion = result.suggestions[0];
   let suggestedSlug = firstSuggestion?.categorySlug ?? null;
 
-  // Avoid pushing obvious non-food items into food.
   if (
     suggestedSlug === "food" &&
     strongNonFoodKeywords.some((keyword) => normalizedTitle.includes(keyword.toLowerCase()))

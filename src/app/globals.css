@@ -1170,6 +1170,15 @@ button {
   color: var(--text-secondary);
 }
 
+.ocr-processing-overlay {
+  z-index: 85;
+  background: color-mix(in srgb, var(--app-bg) 62%, rgba(8, 15, 31, 0.36));
+}
+
+.ocr-processing-dialog {
+  width: min(100%, 272px);
+}
+
 .app-shell-floating-message {
   position: fixed;
   left: 50%;
@@ -1231,6 +1240,31 @@ button {
 .field textarea {
   min-height: 40px;
   resize: vertical;
+}
+
+.section-card-link-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.section-card-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--card-border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--card-bg));
+  color: color-mix(in srgb, var(--accent) 78%, var(--text-primary));
+  flex: 0 0 auto;
+}
+
+.section-card-link-icon-soft {
+  background: color-mix(in srgb, var(--card-bg-strong) 86%, var(--accent) 8%);
+  color: color-mix(in srgb, var(--accent) 44%, var(--text-primary));
 }
 
 .field-hint,

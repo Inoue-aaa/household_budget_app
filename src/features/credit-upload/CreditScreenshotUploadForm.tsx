@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
+import { OcrProcessingDialog } from "@/components/OcrProcessingDialog";
 import { SubmitButton } from "@/components/SubmitButton";
 import { createCreditReviewFromUploadAction } from "@/features/import-review/actions";
 
@@ -10,11 +12,23 @@ type PreviewItem = {
   url: string;
 };
 
+function CreditProcessingDialog() {
+  const { pending } = useFormStatus();
+
+  return (
+    <OcrProcessingDialog
+      description="確認用の明細を準備しています。数秒かかることがあります。"
+      open={pending}
+      title="明細画像を読み取っています…"
+    />
+  );
+}
+
 export function CreditScreenshotUploadForm() {
   const [previews, setPreviews] = useState<PreviewItem[]>([]);
   const previewCountLabel = useMemo(
     () => `${previews.length}/3枚`,
-    [previews.length]
+    [previews.length],
   );
 
   useEffect(() => {
@@ -40,7 +54,10 @@ export function CreditScreenshotUploadForm() {
           onChange={(event) => {
             previews.forEach((preview) => URL.revokeObjectURL(preview.url));
 
-            const files = Array.from(event.currentTarget.files ?? []).slice(0, 3);
+            const files = Array.from(event.currentTarget.files ?? []).slice(
+              0,
+              3,
+            );
             const nextPreviews = files.map((file) => ({
               id: `${file.name}-${file.lastModified}`,
               name: file.name,
@@ -52,10 +69,7 @@ export function CreditScreenshotUploadForm() {
           required
           type="file"
         />
-        <p className="field-hint">
-          1枚から3枚までのクレジット明細画像を選択してください。現在:{" "}
-          {previewCountLabel}
-        </p>
+        <p className="field-hint">現在: {previewCountLabel}</p>
       </div>
 
       {previews.length > 0 ? (
@@ -75,10 +89,15 @@ export function CreditScreenshotUploadForm() {
       ) : null}
 
       <div className="form-footer">
-        <SubmitButton pendingLabel="読み取り中..." testId="credit-upload-submit">
+        <SubmitButton
+          pendingLabel="読み取り中..."
+          testId="credit-upload-submit"
+        >
           読み取る
         </SubmitButton>
       </div>
+
+      <CreditProcessingDialog />
     </form>
   );
 }

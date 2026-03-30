@@ -18,6 +18,7 @@ export type ReceiptAiCategoryHint =
   | "other";
 
 export type ReceiptAiItem = {
+  name?: string | null;
   title: string | null;
   amount: number | string | null;
   kind: ReceiptAiItemKind;
@@ -90,7 +91,7 @@ const EXCLUDED_TITLE_KEYWORDS = [
   "jan",
   "receipt",
   "no."
-];
+] as const;
 
 const NON_ITEM_KINDS: ReceiptAiItemKind[] = ["subtotal", "tax", "total", "tendered", "change"];
 
@@ -112,11 +113,11 @@ function hasRightEdgeAmount(value: string | null) {
     return false;
   }
 
-  return /[-−]?\s*[¥￥]?\s*\d[\d,]*\s*$/.test(value);
+  return /[-−ー]?\s*[¥￥]?\s*\d[\d,]*\s*$/.test(value);
 }
 
 function parseNumberString(value: string) {
-  const normalized = value.replace(/[¥￥,\s]/g, "").replace(/[−–]/g, "-");
+  const normalized = value.replace(/[¥￥,\s]/g, "").replace(/[−ー]/g, "-");
   if (!normalized || normalized === "-") {
     return null;
   }
@@ -142,7 +143,7 @@ function parseSignedAmount(value: number | string | null | undefined, rawText?: 
     return null;
   }
 
-  const matches = normalizedRawText.match(/[-−]?\s*[¥￥]?\s*\d[\d,]*/g);
+  const matches = normalizedRawText.match(/[-−ー]?\s*[¥￥]?\s*\d[\d,]*/g);
   if (!matches || matches.length === 0) {
     return null;
   }
@@ -167,7 +168,7 @@ function normalizePositiveAmount(value: number | string | null | undefined) {
 
 function stripTrailingAmount(value: string) {
   return value
-    .replace(/[-−]?\s*[¥￥]?\s*\d[\d,]*\s*$/g, "")
+    .replace(/[-−ー]?\s*[¥￥]?\s*\d[\d,]*\s*$/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -202,7 +203,6 @@ function isNoiseTitle(value: string | null) {
 
 function cleanTitle(value: string | null | undefined) {
   const normalized = normalizeWhitespace(value);
-
   if (!normalized) {
     return null;
   }
@@ -216,7 +216,7 @@ function cleanTitle(value: string | null | undefined) {
 }
 
 function deriveTitleCandidate(item: ReceiptAiItem) {
-  const explicitTitle = cleanTitle(item.title);
+  const explicitTitle = cleanTitle(item.name) ?? cleanTitle(item.title);
   if (explicitTitle) {
     return explicitTitle;
   }
@@ -226,7 +226,7 @@ function deriveTitleCandidate(item: ReceiptAiItem) {
     return null;
   }
 
-  const leftMatch = rawText.match(/^(.*?)(?:[-−]?\s*[¥￥]?\s*\d[\d,]*)\s*$/);
+  const leftMatch = rawText.match(/^(.*?)(?:[-−ー]?\s*[¥￥]?\s*\d[\d,]*)\s*$/);
   if (leftMatch?.[1]) {
     const leftTitle = cleanTitle(leftMatch[1]);
     if (leftTitle) {
@@ -264,7 +264,7 @@ function scoreItemCandidate(input: {
     score += 2;
   }
 
-  if (input.title && /[ぁ-んァ-ヶ一-龠A-Za-z]/.test(input.title)) {
+  if (input.title && /[ぁ-んァ-ヴ一-龠A-Za-z]/.test(input.title)) {
     score += 2;
   }
 
@@ -279,78 +279,20 @@ function scoreItemCandidate(input: {
   return score;
 }
 
-function scoreNeighborTitle(source: NormalizedReceiptItem, candidate: NormalizedReceiptItem) {
-  if (candidate.amount) {
-    return -Infinity;
-  }
-
-  if (!candidate.title) {
-    return -Infinity;
-  }
-
-  if (!(candidate.kind === "item" || candidate.kind === "unknown")) {
-    return -Infinity;
-  }
-
-  const distance = Math.abs(candidate.index - source.index);
-  if (distance === 0 || distance > 2) {
-    return -Infinity;
-  }
-
-  let score = 0;
-  score += candidate.title.length >= 3 ? 3 : 1;
-  score += /[ぁ-んァ-ヶ一-龠A-Za-z]/.test(candidate.title) ? 2 : 0;
-  score += distance === 1 ? 4 : 2;
-
-  return score;
-}
-
-function pairNeighborTitles(rows: NormalizedReceiptItem[]) {
-  const usedTitleIndexes = new Set<number>();
-
-  return rows.map((row) => {
-    if (row.title || !row.amount || !(row.kind === "item" || row.kind === "unknown")) {
-      return row;
-    }
-
-    const candidates = rows
-      .filter((candidate) => !usedTitleIndexes.has(candidate.index))
-      .map((candidate) => ({
-        candidate,
-        score: scoreNeighborTitle(row, candidate)
-      }))
-      .filter((entry) => Number.isFinite(entry.score))
-      .sort((left, right) => right.score - left.score);
-
-    const best = candidates[0]?.candidate;
-
-    if (!best?.title) {
-      return row;
-    }
-
-    usedTitleIndexes.add(best.index);
-
-    return {
-      ...row,
-      title: best.title
-    };
-  });
-}
-
 function normalizeItems(result: ReceiptAiResult) {
-  const baseRows = result.items.map((item, index) => {
+  return result.items.map((item, index) => {
     const rawText = normalizeWhitespace(item.rawText);
     const title = deriveTitleCandidate(item);
     const amount = parseSignedAmount(item.amount, rawText);
     const originalAmount = normalizePositiveAmount(item.originalAmount ?? item.amount);
     const discountAmount = parseSignedAmount(item.discountAmount, rawText);
     const finalAmount = parseSignedAmount(item.finalAmount, rawText);
-    const rightEdgeAmountLike = hasRightEdgeAmount(rawText);
     const normalizedAmount = finalAmount ?? amount;
     const isDiscountLike =
       Boolean(normalizedAmount && normalizedAmount < 0) &&
       (containsKeyword(title, RECEIPT_DISCOUNT_KEYWORDS) ||
         containsKeyword(rawText, RECEIPT_DISCOUNT_KEYWORDS));
+    const rightEdgeAmountLike = hasRightEdgeAmount(rawText);
 
     return {
       index,
@@ -372,7 +314,6 @@ function normalizeItems(result: ReceiptAiResult) {
             : null,
       kind: item.kind,
       rawText,
-      rightEdgeAmountLike,
       itemScore: scoreItemCandidate({
         title,
         amount: normalizedAmount,
@@ -380,24 +321,12 @@ function normalizeItems(result: ReceiptAiResult) {
         kind: item.kind,
         rightEdgeAmountLike
       }),
+      rightEdgeAmountLike,
       discountLabels: isDiscountLike && title ? [title] : [],
       absorbedDiscountRows: [],
       isDiscountLike
     } satisfies NormalizedReceiptItem;
   });
-
-  const pairedRows = pairNeighborTitles(baseRows);
-
-  return pairedRows.map((row) => ({
-    ...row,
-    itemScore: scoreItemCandidate({
-      title: row.title,
-      amount: row.finalAmount ?? row.amount,
-      rawText: row.rawText,
-      kind: row.kind,
-      rightEdgeAmountLike: row.rightEdgeAmountLike
-    })
-  }));
 }
 
 function canMergeDiscountInto(target: NormalizedReceiptItem) {
@@ -432,7 +361,6 @@ function absorbDiscountRows(rows: NormalizedReceiptItem[]) {
     }
 
     const targetBaseAmount = target.originalAmount ?? target.finalAmount ?? target.amount ?? null;
-
     if (targetBaseAmount == null || targetBaseAmount <= 0) {
       merged.push({
         ...row,
@@ -451,6 +379,7 @@ function absorbDiscountRows(rows: NormalizedReceiptItem[]) {
       ...(row.title ? [row.title] : []),
       ...(row.rawText && row.rawText !== row.title ? [row.rawText] : [])
     ].filter((value, index, list) => list.indexOf(value) === index);
+
     if (row.rawText) {
       target.absorbedDiscountRows.push(row.rawText);
     }
@@ -481,7 +410,6 @@ export function buildDiscountMemo(input: {
   const originalAmount = input.originalAmount ?? null;
   const discountAmount = input.discountAmount ?? null;
   const finalAmount = input.finalAmount ?? null;
-
   const lines: string[] = [];
 
   if (
@@ -494,7 +422,9 @@ export function buildDiscountMemo(input: {
     lines.push(`${originalAmount}-${Math.abs(discountAmount)}=${finalAmount}`);
   }
 
-  const labels = (input.discountLabels ?? []).filter(Boolean);
+  const labels = (input.discountLabels ?? []).filter(
+    (label): label is string => typeof label === "string" && label.trim().length > 0
+  );
   if (labels.length > 0) {
     lines.push(`備考：${labels.join("、")}`);
   }

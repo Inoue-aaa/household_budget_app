@@ -11,7 +11,9 @@ type ExpensesReportPageProps = {
   }>;
 };
 
-export default async function ExpensesReportPage({ searchParams }: ExpensesReportPageProps) {
+export default async function ExpensesReportPage({
+  searchParams,
+}: ExpensesReportPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const snapshot = await getExpensesReportSnapshot(params?.month);
 
@@ -20,7 +22,7 @@ export default async function ExpensesReportPage({ searchParams }: ExpensesRepor
       <ScreenHeader
         eyebrow="Reports"
         title="支出レポート"
-        description="月ごとの日別支出を見ながら、気になる日付の詳細へそのまま移動できます。0円の日もタップできます。"
+        description="月ごとの推移と、日別の支出を見返せます。日別詳細から個別の修正にも進めます。"
       />
 
       <SectionCard
@@ -47,7 +49,9 @@ export default async function ExpensesReportPage({ searchParams }: ExpensesRepor
       <section className="stats-grid stats-grid-single">
         <div className="surface stat-card stat-card-accent stat-card-wide">
           <span className="stat-label">{snapshot.monthLabel}の合計金額</span>
-          <strong className="stat-value">{formatCurrency(snapshot.totalAmount)}</strong>
+          <strong className="stat-value">
+            {formatCurrency(snapshot.totalAmount)}
+          </strong>
         </div>
       </section>
 

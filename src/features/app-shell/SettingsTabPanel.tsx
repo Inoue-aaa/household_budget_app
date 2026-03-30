@@ -14,9 +14,7 @@ type SettingsTabPanelProps = {
   accounts: HouseholdAccountOption[];
   currentAccountId: string | null;
   onThemeSaved?: (themeName: AppThemeName) => void;
-  onSwitchAccount?: (
-    accountId: string
-  ) => Promise<
+  onSwitchAccount?: (accountId: string) => Promise<
     | {
         status: "success";
         accountId: string;
@@ -41,13 +39,13 @@ export function SettingsTabPanel({
       <ScreenHeader
         eyebrow="Settings"
         title="設定"
-        description="アカウント情報と表示カラーを確認できます。日々の使いやすさに合わせて整えてください。"
+        description="アカウント情報と表示カラーを設定できます。"
       />
 
       {accounts.length > 0 && currentAccountId ? (
         <SectionCard
           title="利用アカウント"
-          description="使用する家計簿アカウントを選択できます。同じログイン内で3つのアカウントを切り替えて利用できます。"
+          description="アカウントを切り替えられます。"
         >
           <AccountSwitcherForm
             accounts={accounts}
@@ -59,7 +57,7 @@ export function SettingsTabPanel({
 
       <SectionCard
         title="アカウント"
-        description="このアプリは自分専用のメールアドレスとパスワードでログインする前提です。"
+        description="プライベート使用前提仕様です。"
       >
         <div className="list">
           <div className="list-row">
@@ -80,12 +78,20 @@ export function SettingsTabPanel({
           <span className="settings-section-icon" aria-hidden="true">
             <Palette size={16} />
           </span>
-          <span className="caption">Light / Dark とアクセントを組み合わせて調整できます。</span>
+          <span className="caption">
+            Light / Dark とアクセントを組み合わせて調整できます。
+          </span>
         </div>
-        <ThemePreferenceForm currentTheme={themeName} onSavedTheme={onThemeSaved} />
+        <ThemePreferenceForm
+          currentTheme={themeName}
+          onSavedTheme={onThemeSaved}
+        />
       </SectionCard>
 
-      <Link className="surface section-card section-card-link settings-utility-link" href="/home/budget">
+      <Link
+        className="surface section-card section-card-link settings-utility-link"
+        href="/home/budget"
+      >
         <div className="section-card-link-header">
           <div className="home-quick-action-title">
             <span className="settings-section-icon" aria-hidden="true">
@@ -102,7 +108,10 @@ export function SettingsTabPanel({
         </p>
       </Link>
 
-      <SectionCard title="セッション" description="現在のログイン状態をここから終了できます。">
+      <SectionCard
+        title="セッション"
+        description="現在のログイン状態をここから終了できます。"
+      >
         <form action={signOutAction}>
           <button className="button button-secondary" type="submit">
             ログアウト

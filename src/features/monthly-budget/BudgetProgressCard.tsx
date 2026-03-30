@@ -20,15 +20,20 @@ function formatBudgetMonth(targetMonth: string) {
 
 export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
   const usedRatio = clampRate(budget.usageRate);
-  const remainingRatio = budget.hasBudget && !budget.isOverBudget ? Math.max(0, 1 - usedRatio) : 0;
-  const selectedCategoryNames = budget.selectedCategories.map((category) => category.name).join(" / ");
+  const remainingRatio =
+    budget.hasBudget && !budget.isOverBudget ? Math.max(0, 1 - usedRatio) : 0;
+  const selectedCategoryNames = budget.selectedCategories
+    .map((category) => category.name)
+    .join(" / ");
 
   return (
     <section className="surface budget-hero-card">
       <div className="budget-hero-header">
         <div>
           <p className="eyebrow">Budget</p>
-          <h2 className="budget-hero-title">予算状況（{formatBudgetMonth(budget.targetMonth)}）</h2>
+          <h2 className="budget-hero-title">
+            予算状況（{formatBudgetMonth(budget.targetMonth)}）
+          </h2>
         </div>
       </div>
 
@@ -43,13 +48,19 @@ export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
         <>
           <div className="budget-hero-main">
             <div>
-              <span className="budget-hero-amount-label">残り使える額</span>
+              <span className="budget-hero-amount-label">予算残高</span>
               <strong className="budget-hero-amount">
                 {formatCurrency(budget.remainingAmount ?? 0)}
               </strong>
             </div>
-            <div className={`budget-status-badge${budget.isOverBudget ? " budget-status-badge-over" : ""}`}>
-              {budget.isOverBudget ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+            <div
+              className={`budget-status-badge${budget.isOverBudget ? " budget-status-badge-over" : ""}`}
+            >
+              {budget.isOverBudget ? (
+                <TrendingUp size={13} />
+              ) : (
+                <TrendingDown size={13} />
+              )}
               {budget.isOverBudget ? "予算超過" : "予算内"}
             </div>
           </div>
@@ -57,23 +68,32 @@ export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
           <div className="budget-sub-stats">
             <div className="budget-sub-stat">
               <span className="budget-sub-stat-label">予算額</span>
-              <strong className="budget-sub-stat-value">{formatCurrency(budget.monthlyBudget ?? 0)}</strong>
+              <strong className="budget-sub-stat-value">
+                {formatCurrency(budget.monthlyBudget ?? 0)}
+              </strong>
             </div>
             <div className="budget-sub-stat">
               <span className="budget-sub-stat-label">使用額</span>
-              <strong className="budget-sub-stat-value">{formatCurrency(budget.spentAmount)}</strong>
+              <strong className="budget-sub-stat-value">
+                {formatCurrency(budget.spentAmount)}
+              </strong>
             </div>
             <div className="budget-sub-stat">
               <span className="budget-sub-stat-label">使用率</span>
               <strong className="budget-sub-stat-value">
-                {budget.usageRate != null ? `${Math.round(budget.usageRate * 100)}%` : "0%"}
+                {budget.usageRate != null
+                  ? `${Math.round(budget.usageRate * 100)}%`
+                  : "0%"}
               </strong>
             </div>
           </div>
 
           <div className="budget-progress-shell" aria-label="予算進捗バー">
             {budget.isOverBudget ? (
-              <div className="budget-progress budget-progress-over" style={{ width: "100%" }} />
+              <div
+                className="budget-progress budget-progress-over"
+                style={{ width: "100%" }}
+              />
             ) : (
               <>
                 <div
