@@ -24,6 +24,22 @@ type EditableDraftItem = {
   values: DraftReviewEditableValues;
 };
 
+function normalizeEditableOccurredOn(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const normalized = value.trim().replace(/[./]/g, "-");
+  const match = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+
+  if (!match) {
+    return normalized;
+  }
+
+  const [, year, month, day] = match;
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
 function merchantFieldLabel(sourceType: SourceType) {
   return sourceType === "credit_screenshot" ? "利用先" : "店舗名";
 }
@@ -32,7 +48,7 @@ function createEditableItems(snapshot: DraftReviewSnapshot): EditableDraftItem[]
   return snapshot.items.map((item) => ({
     id: item.id,
     values: {
-      occurredOn: item.occurredOn ?? "",
+      occurredOn: normalizeEditableOccurredOn(item.occurredOn),
       merchantName: item.merchantName ?? "",
       title: item.title ?? "",
       amount: item.amount == null ? "" : String(item.amount),

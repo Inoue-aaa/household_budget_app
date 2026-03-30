@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Landmark, Palette } from "lucide-react";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { signOutAction } from "@/features/auth/actions";
@@ -12,13 +14,18 @@ type SettingsTabPanelProps = {
   accounts: HouseholdAccountOption[];
   currentAccountId: string | null;
   onThemeSaved?: (themeName: AppThemeName) => void;
-  onSwitchAccount?: (accountId: string) => Promise<{
-    status: "success";
-    accountId: string;
-  } | {
-    status: "error" | "unauthorized";
-    message: string;
-  }>;
+  onSwitchAccount?: (
+    accountId: string
+  ) => Promise<
+    | {
+        status: "success";
+        accountId: string;
+      }
+    | {
+        status: "error" | "unauthorized";
+        message: string;
+      }
+  >;
 };
 
 export function SettingsTabPanel({
@@ -30,7 +37,7 @@ export function SettingsTabPanel({
   onSwitchAccount,
 }: SettingsTabPanelProps) {
   return (
-    <div className="page-stack">
+    <div className="page-stack tab-panel-stack">
       <ScreenHeader
         eyebrow="Settings"
         title="設定"
@@ -67,10 +74,33 @@ export function SettingsTabPanel({
 
       <SectionCard
         title="表示カラー"
-        description="背景、カード、文字色、アクセント色をまとめて切り替えます。"
+        description="表示モードとアクセントを分けて選べるようにしています。"
       >
+        <div className="settings-section-accent">
+          <span className="settings-section-icon" aria-hidden="true">
+            <Palette size={16} />
+          </span>
+          <span className="caption">Light / Dark とアクセントを組み合わせて調整できます。</span>
+        </div>
         <ThemePreferenceForm currentTheme={themeName} onSavedTheme={onThemeSaved} />
       </SectionCard>
+
+      <Link className="surface section-card section-card-link settings-utility-link" href="/home/budget">
+        <div className="section-card-link-header">
+          <div className="home-quick-action-title">
+            <span className="settings-section-icon" aria-hidden="true">
+              <Landmark size={16} />
+            </span>
+            <h2 className="section-title">予算設定</h2>
+          </div>
+          <span className="section-card-link-arrow" aria-hidden="true">
+            ›
+          </span>
+        </div>
+        <p className="section-copy">
+          予算額と対象カテゴリを見直したいときは、ここからすぐに移動できます。
+        </p>
+      </Link>
 
       <SectionCard title="セッション" description="現在のログイン状態をここから終了できます。">
         <form action={signOutAction}>

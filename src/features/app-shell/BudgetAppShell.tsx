@@ -31,6 +31,11 @@ function buildShellUrl(tab: AppShellTab) {
   return `/app?tab=${tab}`;
 }
 
+function applyThemeToDocument(themeName: AppThemeName) {
+  document.documentElement.dataset.theme = themeName;
+  document.body.dataset.theme = themeName;
+}
+
 async function fetchAppShellSnapshot() {
   const response = await fetch("/api/app-shell-snapshot", {
     cache: "no-store",
@@ -164,7 +169,7 @@ export function BudgetAppShell({
             const freshSnapshot = await fetchAppShellSnapshot();
             setSnapshot(freshSnapshot);
             writeStoredAppShellSnapshot(freshSnapshot);
-            document.body.dataset.theme = freshSnapshot.settings.themeName;
+            applyThemeToDocument(freshSnapshot.settings.themeName);
             resolve(actionResult);
           } catch {
             if (cached) {

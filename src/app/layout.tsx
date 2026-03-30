@@ -29,7 +29,7 @@ export default async function RootLayout({
   const themeName = await getCurrentThemePreference();
 
   return (
-    <html lang="ja">
+    <html lang="ja" data-theme={themeName}>
       <body className={`${uiFont.variable} ${bodyFont.variable}`} data-theme={themeName}>
         {children}
       </body>

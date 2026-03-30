@@ -21,28 +21,54 @@ type DraftReviewRowFormProps = {
   onChange: (field: keyof DraftReviewEditableValues, value: string) => void;
 };
 
+function normalizeReviewDateInput(value: string) {
+  const normalized = value.replace(/[./]/g, "-").replace(/[^\d-]/g, "").slice(0, 10);
+  const match = normalized.match(/^(\d{4})-(\d{0,2})-?(\d{0,2})$/);
+
+  if (!match) {
+    return normalized;
+  }
+
+  const [, year, month, day] = match;
+  if (!month) {
+    return year;
+  }
+
+  if (!day) {
+    return `${year}-${month}`;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 export function DraftReviewRowForm({
   importGroupId,
   item,
   categories,
   merchantLabel,
   values,
-  onChange
+  onChange,
 }: DraftReviewRowFormProps) {
   return (
     <div className="field-stack review-row-form">
-      <div className="field review-field">
+      <div className="field review-field review-date-field">
         <label htmlFor={`occurredOn-${item.id}`}>日付</label>
         <input
+          autoCapitalize="off"
+          autoComplete="off"
+          autoCorrect="off"
           className="review-form-control review-date-control"
           data-testid={`review-row-${item.id}-occurred-on`}
+          enterKeyHint="next"
           id={`occurredOn-${item.id}`}
           inputMode="numeric"
+          maxLength={10}
           name={`occurredOn-${item.id}`}
-          onChange={(event) => onChange("occurredOn", event.target.value)}
+          onChange={(event) => onChange("occurredOn", normalizeReviewDateInput(event.target.value))}
           pattern="\d{4}-\d{2}-\d{2}"
-          placeholder="YYYY-MM-DD"
+          placeholder="2026-03-25"
           required
+          spellCheck={false}
           type="text"
           value={values.occurredOn}
         />

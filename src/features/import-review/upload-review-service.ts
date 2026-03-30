@@ -7,6 +7,7 @@ import {
   type OcrInputFile,
   type OcrUploadSourceType
 } from "@/lib/ocr/types";
+import type { ReceiptAiCategoryHint } from "@/lib/ocr/receipt-postprocess";
 import { listCategories } from "@/lib/finance/queries";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getOcrProviderMode } from "@/lib/utils/env";
@@ -107,6 +108,51 @@ function deriveNeedsReview(input: {
   return !input.title.trim() || input.amount == null || input.amount <= 0 || !input.categoryId;
 }
 
+function mapCategoryHintToSlug(categoryHint: ReceiptAiCategoryHint | null | undefined) {
+  switch (categoryHint) {
+    case "food":
+      return "food";
+    case "daily_goods":
+      return "daily-necessities";
+    case "medicine":
+      return "health";
+    case "beauty":
+    case "clothing":
+      return "fashion-beauty";
+    case "other":
+      return "other";
+    default:
+      return null;
+  }
+}
+
+function resolveCategoryIdFromHint(
+  categories: Awaited<ReturnType<typeof listCategories>>,
+  categoryHint: ReceiptAiCategoryHint | null | undefined
+) {
+  const slug = mapCategoryHintToSlug(categoryHint);
+  if (!slug) {
+    return null;
+  }
+
+  return categories.find((category) => category.slug === slug)?.id ?? null;
+}
+
+function buildGeneratedNote(line: OcrExtractionLine) {
+  const rawPayload = line.rawPayload;
+
+  if (!rawPayload || typeof rawPayload !== "object") {
+    return null;
+  }
+
+  const autoMemo =
+    typeof rawPayload.autoMemo === "string" && rawPayload.autoMemo.trim()
+      ? rawPayload.autoMemo.trim()
+      : null;
+
+  return autoMemo;
+}
+
 function deriveImportGroupDefaults(input: {
   files: File[];
   lines: OcrExtractionLine[];
@@ -138,13 +184,25 @@ async function buildDraftRows(input: {
   return Promise.all(
     input.lines.map(async (line, index) => {
       const merchantName = line.merchantName ?? input.merchantName;
-      const suggestion = await suggestCategoryIdForDraft(
+      const categoryHint =
+        typeof line.rawPayload?.categoryHint === "string"
+          ? (line.rawPayload.categoryHint as ReceiptAiCategoryHint)
+          : null;
+      const hintedCategoryId = resolveCategoryIdFromHint(input.categories, categoryHint);
+      const classifierSuggestion = await suggestCategoryIdForDraft(
         {
           title: line.title,
           merchantName
         },
         input.categories
       );
+      const suggestion = hintedCategoryId
+        ? {
+            categoryId: hintedCategoryId,
+            needsReview: false
+          }
+        : classifierSuggestion;
+      const generatedNote = buildGeneratedNote(line);
 
       return {
         user_id: input.userId,
@@ -156,7 +214,7 @@ async function buildDraftRows(input: {
         title: line.title,
         amount: line.amount,
         suggested_category_id: suggestion.categoryId,
-        note: null,
+        note: generatedNote,
         source_type: input.sourceType,
         needs_review:
           suggestion.needsReview ||
@@ -168,6 +226,7 @@ async function buildDraftRows(input: {
         raw_payload: {
           providerPayload: line.rawPayload ?? null,
           rawText: line.rawText ?? null,
+          categoryHint,
           fileNames: input.files.map((file) => file.name)
         }
       };

@@ -1,3 +1,4 @@
+import { TrendingDown, TrendingUp } from "lucide-react";
 import type { MonthlyBudgetOverview } from "@/lib/finance/types";
 import { formatCurrency } from "@/lib/utils/format";
 
@@ -40,24 +41,31 @@ export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
         </div>
       ) : (
         <>
-          <div className="budget-stat-grid">
-            <div className="budget-stat-card">
-              <span className="budget-stat-label">予算額</span>
-              <strong className="budget-stat-value">{formatCurrency(budget.monthlyBudget ?? 0)}</strong>
-            </div>
-            <div className="budget-stat-card">
-              <span className="budget-stat-label">使用額</span>
-              <strong className="budget-stat-value">{formatCurrency(budget.spentAmount)}</strong>
-            </div>
-            <div className="budget-stat-card">
-              <span className="budget-stat-label">残り使える額</span>
-              <strong className="budget-stat-value">
+          <div className="budget-hero-main">
+            <div>
+              <span className="budget-hero-amount-label">残り使える額</span>
+              <strong className="budget-hero-amount">
                 {formatCurrency(budget.remainingAmount ?? 0)}
               </strong>
             </div>
-            <div className="budget-stat-card">
-              <span className="budget-stat-label">使用率</span>
-              <strong className="budget-stat-value">
+            <div className={`budget-status-badge${budget.isOverBudget ? " budget-status-badge-over" : ""}`}>
+              {budget.isOverBudget ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+              {budget.isOverBudget ? "予算超過" : "予算内"}
+            </div>
+          </div>
+
+          <div className="budget-sub-stats">
+            <div className="budget-sub-stat">
+              <span className="budget-sub-stat-label">予算額</span>
+              <strong className="budget-sub-stat-value">{formatCurrency(budget.monthlyBudget ?? 0)}</strong>
+            </div>
+            <div className="budget-sub-stat">
+              <span className="budget-sub-stat-label">使用額</span>
+              <strong className="budget-sub-stat-value">{formatCurrency(budget.spentAmount)}</strong>
+            </div>
+            <div className="budget-sub-stat">
+              <span className="budget-sub-stat-label">使用率</span>
+              <strong className="budget-sub-stat-value">
                 {budget.usageRate != null ? `${Math.round(budget.usageRate * 100)}%` : "0%"}
               </strong>
             </div>

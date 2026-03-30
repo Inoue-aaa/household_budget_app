@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { Home, PlusCircle, CreditCard, Settings } from "lucide-react";
 import {
   APP_SHELL_SET_TAB_EVENT,
   APP_SHELL_TAB_CHANGED_EVENT,
@@ -13,10 +14,10 @@ import {
 } from "@/features/app-shell/tabs";
 
 const navItems = [
-  { href: getAppShellHref("home") as Route, label: "ホーム", tab: "home" },
-  { href: getAppShellHref("register") as Route, label: "登録", tab: "register" },
-  { href: getAppShellHref("expenses") as Route, label: "支出", tab: "expenses" },
-  { href: getAppShellHref("settings") as Route, label: "設定", tab: "settings" },
+  { href: getAppShellHref("home") as Route, label: "ホーム", tab: "home", Icon: Home },
+  { href: getAppShellHref("register") as Route, label: "登録", tab: "register", Icon: PlusCircle },
+  { href: getAppShellHref("expenses") as Route, label: "支出", tab: "expenses", Icon: CreditCard },
+  { href: getAppShellHref("settings") as Route, label: "設定", tab: "settings", Icon: Settings },
 ] as const;
 
 function resolveLegacyTab(pathname: string): AppShellTab {
@@ -87,6 +88,7 @@ export function BottomNav() {
               );
             }}
           >
+            <item.Icon size={20} strokeWidth={2} />
             {item.label}
           </Link>
         ))}

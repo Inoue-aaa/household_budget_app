@@ -26,7 +26,7 @@ export function ExpensesTabPanel({
   const notice = getExpensesNotice(noticeCode);
 
   return (
-    <div className="page-stack">
+    <div className="page-stack tab-panel-stack">
       {notice ? (
         <NoticeBanner
           tone={notice.tone}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pencil, ScanLine, CreditCard, AlertCircle } from "lucide-react";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -17,7 +18,7 @@ export function RegisterTabPanel({
   const registerNotice = getRegisterNotice(noticeCode);
 
   return (
-    <div className="page-stack">
+    <div className="page-stack tab-panel-stack">
       {registerNotice ? (
         <NoticeBanner
           tone={registerNotice.tone}
@@ -29,48 +30,60 @@ export function RegisterTabPanel({
       <ScreenHeader
         eyebrow="Register"
         title="登録"
-        description={
-          <>
-            ・手入力
-            <br />
-            ・レシートの画像アップロード
-            <br />
-            ・クレジット明細画像のアップロード
-            <br />
-            から支出を登録できます。
-          </>
-        }
+        description="支出を登録できます。手入力や画像読み取りから保存できます。"
       />
 
       <SectionCard title="支出を登録する">
         <div className="link-grid">
-          <Link className="link-card" href="/register/manual">
-            <strong>手入力で登録</strong>
-            <span>日付、金額、内容、カテゴリを直接入力して保存します。</span>
+          <Link className="link-card link-card-manual" href="/register/manual">
+            <div className="link-card-icon link-card-icon-neutral">
+              <Pencil size={19} />
+            </div>
+            <div className="link-card-body">
+              <strong>手入力で登録</strong>
+              <span>日付、金額、内容、カテゴリを直接入力して保存します。</span>
+            </div>
           </Link>
+
           <Link
-            className="link-card link-card-featured"
+            className="link-card link-card-featured link-card-ocr"
             href="/register/receipt"
           >
-            <strong>レシートを読み取る</strong>
-            <span>画像から下書きを作成し、確認画面で修正してから保存します。</span>
+            <div className="link-card-icon link-card-icon-accent">
+              <ScanLine size={19} />
+            </div>
+            <div className="link-card-body">
+              <strong>レシートを読み取る</strong>
+              <span>画像から下書きを作成し、確認画面で修正してから保存します。</span>
+            </div>
           </Link>
-          <Link className="link-card" href="/register/credit">
-            <strong>クレジット明細を読み取る</strong>
-            <span>
-              スクリーンショットを明細単位で確認し、必要な修正後に保存します。
-            </span>
+
+          <Link className="link-card link-card-credit" href="/register/credit">
+            <div className="link-card-icon link-card-icon-soft">
+              <CreditCard size={19} />
+            </div>
+            <div className="link-card-body">
+              <strong>クレジット明細を読み取る</strong>
+              <span>
+                スクリーンショットを明細単位で確認し、必要な修正後に保存します。
+              </span>
+            </div>
           </Link>
         </div>
       </SectionCard>
 
       {snapshot.totalCount > 0 ? (
         <Link
-          className="surface section-card section-card-link"
+          className="surface section-card section-card-link register-warning-card"
           href="/register/pending"
         >
           <div className="section-card-link-header">
-            <h2 className="section-title">未登録データ</h2>
+            <div className="home-quick-action-title">
+              <span className="register-warning-icon" aria-hidden="true">
+                <AlertCircle size={17} />
+              </span>
+              <h2 className="section-title">未登録データ</h2>
+            </div>
             <span className="section-card-link-arrow" aria-hidden="true">
               ›
             </span>
