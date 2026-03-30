@@ -1,3 +1,4 @@
+import { getAuthenticatedAccountContext, upsertUserPreferencesPatch } from "@/lib/accounts/queries";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME_NAME, isAppThemeName, type AppThemeName } from "@/lib/theme/themes";
 
@@ -27,3 +28,17 @@ export async function getCurrentThemePreference(): Promise<AppThemeName> {
     return DEFAULT_THEME_NAME;
   }
 }
+
+export async function getCurrentThemeAndAccountPreference() {
+  const [themeName, account] = await Promise.all([
+    getCurrentThemePreference(),
+    getAuthenticatedAccountContext(),
+  ]);
+
+  return {
+    themeName,
+    account,
+  };
+}
+
+export { upsertUserPreferencesPatch };

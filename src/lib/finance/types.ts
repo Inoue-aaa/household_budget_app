@@ -1,6 +1,21 @@
 export type SourceType = "receipt" | "manual" | "credit_screenshot";
 export type ImportGroupStatus = "draft" | "confirmed" | "discarded";
 export type RuleSource = "manual_entry" | "user_confirmation" | "admin_seed";
+export type HouseholdAccountSlug = "atsuki" | "sara" | "shared";
+export type HouseholdAccountColorKey = "blue" | "pink" | "blend";
+
+export type HouseholdAccountOption = {
+  id: string;
+  slug: HouseholdAccountSlug;
+  name: string;
+  colorKey: HouseholdAccountColorKey;
+  sortOrder: number;
+};
+
+export type CurrentAccountSnapshot = {
+  currentAccount: HouseholdAccountOption;
+  accounts: HouseholdAccountOption[];
+};
 
 export type CategoryOption = {
   id: string;
@@ -56,12 +71,14 @@ export type ReportMonthOption = {
 };
 
 export type DashboardSnapshot = {
+  account: CurrentAccountSnapshot;
   budget: MonthlyBudgetOverview;
   monthlyTotal: number;
   categorySummary: CategorySummaryItem[];
 };
 
 export type ExpensesPageSnapshot = {
+  account: CurrentAccountSnapshot;
   items: ExpenseListItem[];
   groups: ExpenseImportGroupSummary[];
   totalCount: number;
@@ -69,6 +86,7 @@ export type ExpensesPageSnapshot = {
 };
 
 export type ExpensesReportSnapshot = {
+  account: CurrentAccountSnapshot;
   targetMonth: string;
   monthLabel: string;
   totalAmount: number;
@@ -84,6 +102,7 @@ export type DailyExpenseCategorySummary = {
 };
 
 export type DailyExpensesSnapshot = {
+  account: CurrentAccountSnapshot;
   date: string;
   totalAmount: number;
   items: ExpenseListItem[];
@@ -108,6 +127,7 @@ export type ExpenseHistoryDaySummary = {
 };
 
 export type ExpenseHistorySnapshot = {
+  account: CurrentAccountSnapshot;
   targetMonth: string;
   monthLabel: string;
   totalAmount: number;
@@ -117,6 +137,7 @@ export type ExpenseHistorySnapshot = {
 };
 
 export type CategoryBreakdownSnapshot = {
+  account: CurrentAccountSnapshot;
   targetMonth: string;
   monthLabel: string;
   totalAmount: number;
@@ -138,6 +159,7 @@ export type PendingImportGroupSummary = {
 };
 
 export type PendingImportsPageSnapshot = {
+  account: CurrentAccountSnapshot;
   groups: PendingImportGroupSummary[];
   totalCount: number;
 };
@@ -166,6 +188,7 @@ export type DraftReviewItem = {
 };
 
 export type DraftReviewSnapshot = {
+  account: CurrentAccountSnapshot;
   importGroupId: string;
   sourceType: SourceType;
   status: ImportGroupStatus;

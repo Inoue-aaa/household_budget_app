@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getAuthenticatedAccountContext } from "@/lib/accounts/queries";
 import { createUploadReviewDrafts } from "@/features/import-review/upload-review-service";
 import type {
   ReviewDraftFieldName,
@@ -93,11 +93,9 @@ function isReviewDraftFieldName(value: string): value is ReviewDraftFieldName {
 
 export async function createDummyReceiptReviewAction() {
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const accountContext = await getAuthenticatedAccountContext();
 
-  if (!user) {
+  if (!accountContext) {
     redirect("/login");
   }
 
@@ -116,7 +114,8 @@ export async function createDummyReceiptReviewAction() {
   const { data: importGroup, error: importGroupError } = await supabase
     .from("import_groups")
     .insert({
-      user_id: user.id,
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
       source_type: "receipt",
       status: "draft",
       title: "ダミー読み取り結果",
@@ -134,7 +133,8 @@ export async function createDummyReceiptReviewAction() {
 
   const { error: draftError } = await supabase.from("expense_drafts").insert([
     {
-      user_id: user.id,
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
       import_group_id: importGroup.id,
       line_index: 0,
       occurred_on: occurredOn,
@@ -150,7 +150,8 @@ export async function createDummyReceiptReviewAction() {
       }
     },
     {
-      user_id: user.id,
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
       import_group_id: importGroup.id,
       line_index: 1,
       occurred_on: occurredOn,
@@ -166,7 +167,8 @@ export async function createDummyReceiptReviewAction() {
       }
     },
     {
-      user_id: user.id,
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
       import_group_id: importGroup.id,
       line_index: 2,
       occurred_on: occurredOn,
@@ -188,7 +190,6 @@ export async function createDummyReceiptReviewAction() {
     redirect(receiptPath("create-error"));
   }
 
-  revalidatePath(`/register/review/${importGroup.id}`);
   redirect(reviewPath(importGroup.id, "dummy-created"));
 }
 
@@ -207,7 +208,6 @@ export async function createReceiptReviewFromUploadAction(formData: FormData) {
     redirect(receiptPath(result.code));
   }
 
-  revalidatePath(`/register/review/${result.importGroupId}`);
   redirect(reviewPath(result.importGroupId, "upload-created"));
 }
 
@@ -226,7 +226,6 @@ export async function createCreditReviewFromUploadAction(formData: FormData) {
     redirect(creditPath(result.code));
   }
 
-  revalidatePath(`/register/review/${result.importGroupId}`);
   redirect(reviewPath(result.importGroupId, "upload-created"));
 }
 
@@ -241,28 +240,32 @@ export async function addDraftRowAction(formData: FormData) {
 
   const importGroupId = parsed.data.importGroupId;
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const accountContext = await getAuthenticatedAccountContext();
 
-  if (!user) {
+  if (!accountContext) {
     redirect("/login");
   }
 
   const [{ data: importGroup }, { data: lastDraft }] = await Promise.all([
     supabase
       .from("import_groups")
-      .select("occurred_on, source_type, title")
+      .select("occurred_on, source_type, title, account_id")
+      .eq("account_id", accountContext.currentAccount.id)
       .eq("id", importGroupId)
-      .single(),
+      .maybeSingle(),
     supabase
       .from("expense_drafts")
       .select("line_index")
+      .eq("account_id", accountContext.currentAccount.id)
       .eq("import_group_id", importGroupId)
       .order("line_index", { ascending: false })
       .limit(1)
       .maybeSingle()
   ]);
+
+  if (!importGroup) {
+    redirect("/register");
+  }
 
   const { data: categories } = await supabase
     .from("categories")
@@ -272,23 +275,23 @@ export async function addDraftRowAction(formData: FormData) {
     .limit(1);
 
   await supabase.from("expense_drafts").insert({
-    user_id: user.id,
+    user_id: accountContext.userId,
+    account_id: importGroup.account_id ?? accountContext.currentAccount.id,
     import_group_id: importGroupId,
     line_index: (lastDraft?.line_index ?? -1) + 1,
-    occurred_on: importGroup?.occurred_on,
-    merchant_name: importGroup?.title ?? null,
+    occurred_on: importGroup.occurred_on,
+    merchant_name: importGroup.title ?? null,
     title: "新しい明細",
     amount: null,
     suggested_category_id: categories?.[0]?.id ?? null,
     note: null,
-    source_type: importGroup?.source_type ?? "receipt",
+    source_type: importGroup.source_type ?? "receipt",
     needs_review: true,
     raw_payload: {
       kind: "manual-review-add"
     }
   });
 
-  revalidatePath(`/register/review/${importGroupId}`);
   redirect(reviewPath(importGroupId, "row-added"));
 }
 
@@ -312,6 +315,11 @@ export async function updateDraftRowAction(formData: FormData) {
   const { importGroupId, draftId, title, occurredOn, merchantName, amount, categoryId, note } =
     parsed.data;
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
   const { error } = await supabase
     .from("expense_drafts")
     .update({
@@ -324,13 +332,13 @@ export async function updateDraftRowAction(formData: FormData) {
       needs_review: deriveNeedsReview({ title, amount, categoryId })
     })
     .eq("id", draftId)
+    .eq("account_id", accountContext.currentAccount.id)
     .eq("import_group_id", importGroupId);
 
   if (error) {
     redirect(reviewPath(importGroupId, "row-save-error"));
   }
 
-  revalidatePath(`/register/review/${importGroupId}`);
   redirect(reviewPath(importGroupId, "row-saved"));
 }
 
@@ -373,6 +381,15 @@ export async function saveDraftRowAction(
     parsed.data;
 
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    return {
+      status: "error",
+      message: "ログイン状態を確認できませんでした。もう一度お試しください。",
+      values
+    };
+  }
   const { error } = await supabase
     .from("expense_drafts")
     .update({
@@ -385,6 +402,7 @@ export async function saveDraftRowAction(
       needs_review: deriveNeedsReview({ title, amount, categoryId })
     })
     .eq("id", draftId)
+    .eq("account_id", accountContext.currentAccount.id)
     .eq("import_group_id", importGroupId);
 
   if (error) {
@@ -394,8 +412,6 @@ export async function saveDraftRowAction(
       values
     };
   }
-
-  revalidatePath(`/register/review/${importGroupId}`);
 
   return {
     status: "success",
@@ -429,13 +445,18 @@ export async function deleteDraftRowAction(formData: FormData) {
 
   const { importGroupId, draftId } = parsed.data;
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
   await supabase
     .from("expense_drafts")
     .delete()
     .eq("id", draftId)
+    .eq("account_id", accountContext.currentAccount.id)
     .eq("import_group_id", importGroupId);
 
-  revalidatePath(`/register/review/${importGroupId}`);
   redirect(reviewPath(importGroupId, "row-deleted"));
 }
 
@@ -450,7 +471,23 @@ export async function confirmDraftsAction(formData: FormData) {
 
   const importGroupId = parsed.data.importGroupId;
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
   const draftsPayload = formData.get("draftsPayload")?.toString();
+
+  const { data: importGroup } = await supabase
+    .from("import_groups")
+    .select("id")
+    .eq("id", importGroupId)
+    .eq("account_id", accountContext.currentAccount.id)
+    .maybeSingle();
+
+  if (!importGroup) {
+    redirect("/register");
+  }
 
   if (draftsPayload) {
     let payload: unknown;
@@ -490,6 +527,7 @@ export async function confirmDraftsAction(formData: FormData) {
           })
         })
         .eq("id", item.draftId)
+        .eq("account_id", accountContext.currentAccount.id)
         .eq("import_group_id", importGroupId);
 
       if (updateError) {
@@ -506,8 +544,6 @@ export async function confirmDraftsAction(formData: FormData) {
     redirect(reviewPath(importGroupId, "confirm-error"));
   }
 
-  revalidatePath("/expenses");
-  revalidatePath("/home");
   redirect("/expenses?created=1");
 }
 
@@ -522,6 +558,23 @@ export async function discardImportGroupAction(formData: FormData) {
 
   const importGroupId = parsed.data.importGroupId;
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
+
+  const { data: importGroup } = await supabase
+    .from("import_groups")
+    .select("id")
+    .eq("id", importGroupId)
+    .eq("account_id", accountContext.currentAccount.id)
+    .maybeSingle();
+
+  if (!importGroup) {
+    redirect("/register");
+  }
+
   const { error } = await supabase.rpc("delete_import_group", {
     p_import_group_id: importGroupId
   });
@@ -530,9 +583,6 @@ export async function discardImportGroupAction(formData: FormData) {
     redirect(reviewPath(importGroupId, "discard-error"));
   }
 
-  revalidatePath("/register");
-  revalidatePath("/register/pending");
-  revalidatePath("/home");
   redirect(registerPath("group-discarded"));
 }
 
@@ -547,6 +597,23 @@ export async function deleteImportGroupAction(formData: FormData) {
 
   const importGroupId = parsed.data.importGroupId;
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
+
+  const { data: importGroup } = await supabase
+    .from("import_groups")
+    .select("id")
+    .eq("id", importGroupId)
+    .eq("account_id", accountContext.currentAccount.id)
+    .maybeSingle();
+
+  if (!importGroup) {
+    redirect("/expenses");
+  }
+
   const { error } = await supabase.rpc("delete_import_group", {
     p_import_group_id: importGroupId
   });
@@ -555,8 +622,6 @@ export async function deleteImportGroupAction(formData: FormData) {
     redirect("/expenses?delete_error=1");
   }
 
-  revalidatePath("/expenses");
-  revalidatePath("/home");
   redirect("/expenses?deleted=1");
 }
 
@@ -571,6 +636,23 @@ export async function deletePendingImportGroupAction(formData: FormData) {
 
   const importGroupId = parsed.data.importGroupId;
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
+
+  const { data: importGroup } = await supabase
+    .from("import_groups")
+    .select("id")
+    .eq("id", importGroupId)
+    .eq("account_id", accountContext.currentAccount.id)
+    .maybeSingle();
+
+  if (!importGroup) {
+    redirect("/register/pending");
+  }
+
   const { error } = await supabase.rpc("delete_import_group", {
     p_import_group_id: importGroupId
   });
@@ -579,8 +661,5 @@ export async function deletePendingImportGroupAction(formData: FormData) {
     redirect(pendingPath("delete_error"));
   }
 
-  revalidatePath("/register/pending");
-  revalidatePath("/register");
-  revalidatePath("/home");
   redirect(pendingPath("deleted"));
 }

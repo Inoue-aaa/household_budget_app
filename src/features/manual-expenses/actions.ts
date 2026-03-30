@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getAuthenticatedAccountContext } from "@/lib/accounts/queries";
 import type {
   FieldName,
   ManualExpenseFormState,
@@ -112,11 +112,9 @@ export async function createManualExpenseAction(
   }
 
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const accountContext = await getAuthenticatedAccountContext();
 
-  if (!user) {
+  if (!accountContext) {
     return {
       status: "error",
       message: "ログイン状態を確認できませんでした。もう一度ログインしてください。",
@@ -130,7 +128,8 @@ export async function createManualExpenseAction(
   const { data: importGroup, error: importGroupError } = await supabase
     .from("import_groups")
     .insert({
-      user_id: user.id,
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
       source_type: "manual",
       status: "confirmed",
       title: merchantName ?? parsed.data.title,
@@ -152,7 +151,8 @@ export async function createManualExpenseAction(
   }
 
   const { error: expenseError } = await supabase.from("expenses").insert({
-    user_id: user.id,
+    user_id: accountContext.userId,
+    account_id: accountContext.currentAccount.id,
     import_group_id: importGroup.id,
     occurred_on: parsed.data.occurredOn,
     merchant_name: merchantName,
@@ -182,7 +182,8 @@ export async function createManualExpenseAction(
   const { data: existingRule } = await supabase
     .from("classification_rules")
     .select("id, usage_count")
-    .eq("user_id", user.id)
+    .eq("user_id", accountContext.userId)
+    .eq("account_id", accountContext.currentAccount.id)
     .eq("normalized_item_name", normalizedItem)
     .eq("normalized_merchant_name", normalizedMerchant)
     .maybeSingle();
@@ -199,7 +200,8 @@ export async function createManualExpenseAction(
       .eq("id", existingRule.id);
   } else {
     await supabase.from("classification_rules").insert({
-      user_id: user.id,
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
       normalized_item_name: normalizedItem,
       normalized_merchant_name: normalizedMerchant,
       category_id: parsed.data.categoryId,
@@ -209,7 +211,5 @@ export async function createManualExpenseAction(
     });
   }
 
-  revalidatePath("/expenses");
-  revalidatePath("/home");
   redirect("/expenses?created=1");
 }

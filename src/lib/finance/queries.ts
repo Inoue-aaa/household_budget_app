@@ -1,14 +1,16 @@
+import { getAuthenticatedAccountContext } from "@/lib/accounts/queries";
 import { INITIAL_CATEGORIES } from "@/lib/finance/categories";
 import type {
   CategoryRow,
   ExpenseDraftRow,
   ExpenseRow,
-  ImportGroupRow
+  ImportGroupRow,
 } from "@/lib/finance/db-types";
 import type {
   CategorySummaryItem,
   CategoryBreakdownSnapshot,
   CategoryOption,
+  CurrentAccountSnapshot,
   DailyExpensesSnapshot,
   DailySpendingItem,
   DashboardSnapshot,
@@ -28,6 +30,27 @@ import type {
 } from "@/lib/finance/types";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatMonthLabel, monthDateRange, monthStartDateString } from "@/lib/utils/format";
+
+function createFallbackAccountSnapshot(): CurrentAccountSnapshot {
+  return {
+    currentAccount: {
+      id: "fallback-account",
+      slug: "atsuki",
+      name: "あつき",
+      colorKey: "blue",
+      sortOrder: 1,
+    },
+    accounts: [
+      {
+        id: "fallback-account",
+        slug: "atsuki",
+        name: "あつき",
+        colorKey: "blue",
+        sortOrder: 1,
+      },
+    ],
+  };
+}
 
 function mapCategoryOptions(
   categories: Pick<CategoryRow, "id" | "slug" | "name" | "sort_order" | "is_active">[]
@@ -200,10 +223,14 @@ function createEmptyBudgetOverview(date: Date): MonthlyBudgetOverview {
   };
 }
 
-function createEmptyReportSnapshot(date: Date): ExpensesReportSnapshot {
+function createEmptyReportSnapshot(
+  date: Date,
+  account: CurrentAccountSnapshot
+): ExpensesReportSnapshot {
   const targetMonth = monthStartDateString(date).slice(0, 7);
 
   return {
+    account,
     targetMonth,
     monthLabel: formatMonthLabel(`${targetMonth}-01`),
     totalAmount: 0,
@@ -212,10 +239,14 @@ function createEmptyReportSnapshot(date: Date): ExpensesReportSnapshot {
   };
 }
 
-function createEmptyHistorySnapshot(date: Date): ExpenseHistorySnapshot {
+function createEmptyHistorySnapshot(
+  date: Date,
+  account: CurrentAccountSnapshot
+): ExpenseHistorySnapshot {
   const targetMonth = monthStartDateString(date).slice(0, 7);
 
   return {
+    account,
     targetMonth,
     monthLabel: formatMonthLabel(`${targetMonth}-01`),
     totalAmount: 0,
@@ -227,12 +258,14 @@ function createEmptyHistorySnapshot(date: Date): ExpenseHistorySnapshot {
 
 function createEmptyCategoryBreakdownSnapshot(
   date: Date,
+  account: CurrentAccountSnapshot,
   selectedCategoryId: string | null,
   selectedSort: "date_desc" | "date_asc" | "amount_desc" | "amount_asc" = "date_desc"
 ): CategoryBreakdownSnapshot {
   const targetMonth = monthStartDateString(date).slice(0, 7);
 
   return {
+    account,
     targetMonth,
     monthLabel: formatMonthLabel(`${targetMonth}-01`),
     totalAmount: 0,
@@ -266,6 +299,12 @@ export async function listCategories(): Promise<CategoryOption[]> {
 
 export async function getMonthlyBudgetOverview(date = new Date()): Promise<MonthlyBudgetOverview> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return createEmptyBudgetOverview(date);
+    }
+
     const supabase = await createServerSupabaseClient();
     const categories = await listCategories();
     const targetMonth = monthStartDateString(date);
@@ -275,6 +314,7 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
       .from("monthly_budgets")
       .select("id, target_month, budget_amount")
       .eq("target_month", targetMonth)
+      .eq("account_id", accountContext.currentAccount.id)
       .maybeSingle();
 
     if (budgetError || !budget) {
@@ -303,6 +343,7 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
         .select("amount")
         .gte("occurred_on", start)
         .lte("occurred_on", end)
+        .eq("account_id", accountContext.currentAccount.id)
         .in("category_id", selectedCategoryIds);
 
       if (!spentError && spentRows) {
@@ -335,6 +376,12 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
 
 export async function listRecentExpenses(limit = 12): Promise<ExpenseListItem[]> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return [];
+    }
+
     const supabase = await createServerSupabaseClient();
     const categories = await listCategories();
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
@@ -344,6 +391,7 @@ export async function listRecentExpenses(limit = 12): Promise<ExpenseListItem[]>
       .select(
         "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
       )
+      .eq("account_id", accountContext.currentAccount.id)
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -360,6 +408,18 @@ export async function listRecentExpenses(limit = 12): Promise<ExpenseListItem[]>
 
 export async function getExpensesPageSnapshot(limit = 50): Promise<ExpensesPageSnapshot> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return {
+        account: createFallbackAccountSnapshot(),
+        items: [],
+        groups: [],
+        totalCount: 0,
+        totalAmount: 0,
+      };
+    }
+
     const supabase = await createServerSupabaseClient();
     const categories = await listCategories();
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
@@ -369,12 +429,14 @@ export async function getExpensesPageSnapshot(limit = 50): Promise<ExpensesPageS
       .select(
         "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
       )
+      .eq("account_id", accountContext.currentAccount.id)
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(limit);
 
     if (recentError) {
       return {
+        account: accountContext,
         items: [],
         groups: [],
         totalCount: 0,
@@ -415,6 +477,7 @@ export async function getExpensesPageSnapshot(limit = 50): Promise<ExpensesPageS
     });
 
     return {
+      account: accountContext,
       items,
       groups,
       totalCount: items.length,
@@ -422,6 +485,7 @@ export async function getExpensesPageSnapshot(limit = 50): Promise<ExpensesPageS
     };
   } catch {
     return {
+      account: createFallbackAccountSnapshot(),
       items: [],
       groups: [],
       totalCount: 0,
@@ -432,8 +496,14 @@ export async function getExpensesPageSnapshot(limit = 50): Promise<ExpensesPageS
 
 export async function getExpensesReportSnapshot(month?: string): Promise<ExpensesReportSnapshot> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
     const supabase = await createServerSupabaseClient();
     const targetDate = resolveMonthDate(month);
+
+    if (!accountContext) {
+      return createEmptyReportSnapshot(targetDate, createFallbackAccountSnapshot());
+    }
+
     const { start, end } = monthDateRange(targetDate);
 
     const [{ data: monthRows, error: monthError }, { data: allExpenseDates, error: allDatesError }] =
@@ -441,17 +511,23 @@ export async function getExpensesReportSnapshot(month?: string): Promise<Expense
         supabase
           .from("expenses")
           .select("occurred_on, amount")
+          .eq("account_id", accountContext.currentAccount.id)
           .gte("occurred_on", start)
           .lte("occurred_on", end)
           .order("occurred_on", { ascending: true }),
-        supabase.from("expenses").select("occurred_on").order("occurred_on", { ascending: false })
+        supabase
+          .from("expenses")
+          .select("occurred_on")
+          .eq("account_id", accountContext.currentAccount.id)
+          .order("occurred_on", { ascending: false })
       ]);
 
     if (monthError || allDatesError) {
-      return createEmptyReportSnapshot(targetDate);
+      return createEmptyReportSnapshot(targetDate, accountContext);
     }
 
     return {
+      account: accountContext,
       targetMonth: start.slice(0, 7),
       monthLabel: formatMonthLabel(start),
       totalAmount: (monthRows ?? []).reduce((sum, item) => sum + item.amount, 0),
@@ -459,14 +535,20 @@ export async function getExpensesReportSnapshot(month?: string): Promise<Expense
       availableMonths: buildAvailableMonths(allExpenseDates ?? [], targetDate)
     };
   } catch {
-    return createEmptyReportSnapshot(resolveMonthDate(month));
+    return createEmptyReportSnapshot(resolveMonthDate(month), createFallbackAccountSnapshot());
   }
 }
 
 export async function getExpenseHistorySnapshot(month?: string): Promise<ExpenseHistorySnapshot> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
     const supabase = await createServerSupabaseClient();
     const targetDate = resolveMonthDate(month);
+
+    if (!accountContext) {
+      return createEmptyHistorySnapshot(targetDate, createFallbackAccountSnapshot());
+    }
+
     const { start, end } = monthDateRange(targetDate);
 
     const [{ data: monthRows, error: monthError }, { data: allExpenseDates, error: allDatesError }] =
@@ -474,14 +556,19 @@ export async function getExpenseHistorySnapshot(month?: string): Promise<Expense
         supabase
           .from("expenses")
           .select("occurred_on, amount")
+          .eq("account_id", accountContext.currentAccount.id)
           .gte("occurred_on", start)
           .lte("occurred_on", end)
           .order("occurred_on", { ascending: false }),
-        supabase.from("expenses").select("occurred_on").order("occurred_on", { ascending: false })
+        supabase
+          .from("expenses")
+          .select("occurred_on")
+          .eq("account_id", accountContext.currentAccount.id)
+          .order("occurred_on", { ascending: false })
       ]);
 
     if (monthError || allDatesError) {
-      return createEmptyHistorySnapshot(targetDate);
+      return createEmptyHistorySnapshot(targetDate, accountContext);
     }
 
     const dayMap = new Map<string, ExpenseHistoryDaySummary>();
@@ -502,6 +589,7 @@ export async function getExpenseHistorySnapshot(month?: string): Promise<Expense
     );
 
     return {
+      account: accountContext,
       targetMonth: start.slice(0, 7),
       monthLabel: formatMonthLabel(start),
       totalAmount: (monthRows ?? []).reduce((sum, item) => sum + item.amount, 0),
@@ -510,7 +598,7 @@ export async function getExpenseHistorySnapshot(month?: string): Promise<Expense
       availableMonths: buildAvailableMonths(allExpenseDates ?? [], targetDate)
     };
   } catch {
-    return createEmptyHistorySnapshot(resolveMonthDate(month));
+    return createEmptyHistorySnapshot(resolveMonthDate(month), createFallbackAccountSnapshot());
   }
 }
 
@@ -520,10 +608,21 @@ export async function getCategoryBreakdownSnapshot(
   sort: "date_desc" | "date_asc" | "amount_desc" | "amount_asc" = "date_desc"
 ): Promise<CategoryBreakdownSnapshot> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
     const supabase = await createServerSupabaseClient();
     const categories = await listCategories();
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
     const targetDate = resolveMonthDate(month);
+
+    if (!accountContext) {
+      return createEmptyCategoryBreakdownSnapshot(
+        targetDate,
+        createFallbackAccountSnapshot(),
+        selectedCategoryId,
+        sort
+      );
+    }
+
     const { start, end } = monthDateRange(targetDate);
 
     const [{ data: monthRows, error: monthError }, { data: allExpenseDates, error: allDatesError }] =
@@ -531,13 +630,23 @@ export async function getCategoryBreakdownSnapshot(
         supabase
           .from("expenses")
           .select("category_id, amount")
+          .eq("account_id", accountContext.currentAccount.id)
           .gte("occurred_on", start)
           .lte("occurred_on", end),
-        supabase.from("expenses").select("occurred_on").order("occurred_on", { ascending: false })
+        supabase
+          .from("expenses")
+          .select("occurred_on")
+          .eq("account_id", accountContext.currentAccount.id)
+          .order("occurred_on", { ascending: false })
       ]);
 
     if (monthError || allDatesError) {
-      return createEmptyCategoryBreakdownSnapshot(targetDate, selectedCategoryId, sort);
+      return createEmptyCategoryBreakdownSnapshot(
+        targetDate,
+        accountContext,
+        selectedCategoryId,
+        sort
+      );
     }
 
     const summaryMap = new Map<string, CategorySummaryItem>();
@@ -564,6 +673,7 @@ export async function getCategoryBreakdownSnapshot(
         .select(
           "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
         )
+        .eq("account_id", accountContext.currentAccount.id)
         .eq("category_id", selectedCategoryId)
         .gte("occurred_on", start)
         .lte("occurred_on", end)
@@ -604,6 +714,7 @@ export async function getCategoryBreakdownSnapshot(
     }
 
     return {
+      account: accountContext,
       targetMonth: start.slice(0, 7),
       monthLabel: formatMonthLabel(start),
       totalAmount: (monthRows ?? []).reduce((sum, item) => sum + item.amount, 0),
@@ -617,7 +728,12 @@ export async function getCategoryBreakdownSnapshot(
       selectedExpenses
     };
   } catch {
-    return createEmptyCategoryBreakdownSnapshot(resolveMonthDate(month), selectedCategoryId, sort);
+    return createEmptyCategoryBreakdownSnapshot(
+      resolveMonthDate(month),
+      createFallbackAccountSnapshot(),
+      selectedCategoryId,
+      sort
+    );
   }
 }
 
@@ -627,6 +743,12 @@ export async function getDailyExpensesSnapshot(date: string): Promise<DailyExpen
   }
 
   try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return null;
+    }
+
     const supabase = await createServerSupabaseClient();
     const categories = await listCategories();
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
@@ -635,6 +757,7 @@ export async function getDailyExpensesSnapshot(date: string): Promise<DailyExpen
       .select(
         "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
       )
+      .eq("account_id", accountContext.currentAccount.id)
       .eq("occurred_on", date)
       .order("created_at", { ascending: false });
 
@@ -658,6 +781,7 @@ export async function getDailyExpensesSnapshot(date: string): Promise<DailyExpen
     }
 
     return {
+      account: accountContext,
       date,
       totalAmount: items.reduce((sum, item) => sum + item.amount, 0),
       items,
@@ -681,6 +805,16 @@ export async function getDailyExpensesSnapshot(date: string): Promise<DailyExpen
 
 export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPageSnapshot> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return {
+        account: createFallbackAccountSnapshot(),
+        groups: [],
+        totalCount: 0,
+      };
+    }
+
     const supabase = await createServerSupabaseClient();
 
     const [{ data: groups, error: groupsError }, { data: drafts, error: draftsError }] =
@@ -688,16 +822,19 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
         supabase
           .from("import_groups")
           .select("id, source_type, created_at, occurred_on, title")
+          .eq("account_id", accountContext.currentAccount.id)
           .eq("status", "draft")
           .order("created_at", { ascending: false }),
         supabase
           .from("expense_drafts")
           .select("id, import_group_id, merchant_name, title, created_at, line_index")
+          .eq("account_id", accountContext.currentAccount.id)
           .order("created_at", { ascending: false })
       ]);
 
     if (groupsError || draftsError) {
       return {
+        account: accountContext,
         groups: [],
         totalCount: 0
       };
@@ -706,11 +843,13 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
     const pendingGroups = buildPendingImportGroups(groups ?? [], drafts ?? []);
 
     return {
+      account: accountContext,
       groups: pendingGroups,
       totalCount: pendingGroups.length
     };
   } catch {
     return {
+      account: createFallbackAccountSnapshot(),
       groups: [],
       totalCount: 0
     };
@@ -721,6 +860,12 @@ export async function getDraftReviewSnapshot(
   importGroupId: string
 ): Promise<DraftReviewSnapshot | null> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return null;
+    }
+
     const supabase = await createServerSupabaseClient();
     const categories = await listCategories();
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
@@ -730,6 +875,7 @@ export async function getDraftReviewSnapshot(
         supabase
           .from("import_groups")
           .select("id, source_type, status, title, occurred_on, metadata")
+          .eq("account_id", accountContext.currentAccount.id)
           .eq("id", importGroupId)
           .single(),
         supabase
@@ -737,6 +883,7 @@ export async function getDraftReviewSnapshot(
           .select(
             "id, import_group_id, line_index, title, amount, note, merchant_name, occurred_on, suggested_category_id, source_type, needs_review"
           )
+          .eq("account_id", accountContext.currentAccount.id)
           .eq("import_group_id", importGroupId)
           .order("line_index", { ascending: true })
           .order("created_at", { ascending: true })
@@ -769,6 +916,7 @@ export async function getDraftReviewSnapshot(
     }));
 
     return {
+      account: accountContext,
       importGroupId: importGroup.id,
       sourceType: importGroup.source_type,
       status: importGroup.status,
@@ -787,10 +935,20 @@ export async function getDraftReviewSnapshot(
 
 export async function getDashboardSnapshot(date = new Date()): Promise<DashboardSnapshot> {
   try {
+    const accountContext = await getAuthenticatedAccountContext();
     const supabase = await createServerSupabaseClient();
     const categories = await listCategories();
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
     const { start, end } = monthDateRange(date);
+
+    if (!accountContext) {
+      return {
+        account: createFallbackAccountSnapshot(),
+        budget: createEmptyBudgetOverview(date),
+        monthlyTotal: 0,
+        categorySummary: [],
+      };
+    }
 
     const [{ data: monthExpenses, error: expenseError }, budget] = await Promise.all([
       supabase
@@ -798,6 +956,7 @@ export async function getDashboardSnapshot(date = new Date()): Promise<Dashboard
         .select(
           "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
         )
+        .eq("account_id", accountContext.currentAccount.id)
         .gte("occurred_on", start)
         .lte("occurred_on", end)
         .order("occurred_on", { ascending: false })
@@ -807,6 +966,7 @@ export async function getDashboardSnapshot(date = new Date()): Promise<Dashboard
 
     if (expenseError) {
       return {
+        account: accountContext,
         budget,
         monthlyTotal: 0,
         categorySummary: []
@@ -830,6 +990,7 @@ export async function getDashboardSnapshot(date = new Date()): Promise<Dashboard
     }
 
     return {
+      account: accountContext,
       budget,
       monthlyTotal: expenses.reduce((sum, expense) => sum + expense.amount, 0),
       categorySummary: Array.from(summaryMap.values())
@@ -838,6 +999,7 @@ export async function getDashboardSnapshot(date = new Date()): Promise<Dashboard
     };
   } catch {
     return {
+      account: createFallbackAccountSnapshot(),
       budget: createEmptyBudgetOverview(date),
       monthlyTotal: 0,
       categorySummary: []

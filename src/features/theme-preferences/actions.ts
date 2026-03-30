@@ -1,22 +1,36 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
+import { upsertUserPreferencesPatch } from "@/lib/accounts/queries";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { APP_THEMES } from "@/lib/theme/themes";
+import { APP_THEMES, type AppThemeName } from "@/lib/theme/themes";
+
+export type ThemePreferenceActionResult =
+  | {
+      status: "success";
+      themeName: AppThemeName;
+    }
+  | {
+      status: "error" | "unauthorized";
+      message: string;
+    };
 
 const themeSchema = z.object({
   themeName: z.enum(APP_THEMES.map((theme) => theme.name) as [string, ...string[]])
 });
 
-export async function saveThemePreferenceAction(formData: FormData) {
+export async function saveThemePreferenceAction(
+  formData: FormData
+): Promise<ThemePreferenceActionResult> {
   const parsed = themeSchema.safeParse({
     themeName: formData.get("themeName")
   });
 
   if (!parsed.success) {
-    redirect("/settings?notice=theme_error");
+    return {
+      status: "error",
+      message: "表示カラーを保存できませんでした。"
+    };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -25,30 +39,25 @@ export async function saveThemePreferenceAction(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    return {
+      status: "unauthorized",
+      message: "ログイン状態を確認できませんでした。"
+    };
   }
 
-  const { error } = await supabase.from("user_preferences").upsert(
-    {
-      user_id: user.id,
-      theme_name: parsed.data.themeName
-    },
-    {
-      onConflict: "user_id"
-    }
-  );
-
-  if (error) {
-    redirect("/settings?notice=theme_error");
+  try {
+    await upsertUserPreferencesPatch(supabase, user.id, {
+      themeName: parsed.data.themeName as AppThemeName,
+    });
+  } catch {
+    return {
+      status: "error",
+      message: "表示カラーを保存できませんでした。"
+    };
   }
 
-  revalidatePath("/settings");
-  revalidatePath("/home");
-  revalidatePath("/home/budget");
-  revalidatePath("/home/categories");
-  revalidatePath("/expenses");
-  revalidatePath("/expenses/reports");
-  revalidatePath("/expenses/history");
-  revalidatePath("/register");
-  redirect("/settings?notice=theme_saved");
+  return {
+    status: "success",
+    themeName: parsed.data.themeName as AppThemeName
+  };
 }

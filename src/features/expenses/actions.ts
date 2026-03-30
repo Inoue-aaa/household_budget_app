@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getAuthenticatedAccountContext } from "@/lib/accounts/queries";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function dayPath(date: string, notice?: string) {
@@ -66,15 +66,6 @@ const deleteExpenseSchema = z.object({
   occurredOn: z.string().refine(isValidDate)
 });
 
-function revalidateExpenseSurfaces(date: string) {
-  revalidatePath("/expenses");
-  revalidatePath("/expenses/reports");
-  revalidatePath("/expenses/history");
-  revalidatePath("/home");
-  revalidatePath("/home/categories");
-  revalidatePath(`/expenses/day/${date}`);
-}
-
 async function updateExpenseFields({
   expenseId,
   occurredOn,
@@ -87,11 +78,17 @@ async function updateExpenseFields({
   categoryId: string;
 }) {
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
 
   const { data: currentExpense, error: currentExpenseError } = await supabase
     .from("expenses")
     .select("suggested_category_id, category_id")
     .eq("id", expenseId)
+    .eq("account_id", accountContext.currentAccount.id)
     .maybeSingle();
 
   if (currentExpenseError || !currentExpense) {
@@ -110,13 +107,13 @@ async function updateExpenseFields({
       category_id: categoryId,
       is_category_corrected: isCategoryCorrected
     })
-    .eq("id", expenseId);
+    .eq("id", expenseId)
+    .eq("account_id", accountContext.currentAccount.id);
 
   if (error) {
     redirect(dayPath(occurredOn, "expense_update_error"));
   }
 
-  revalidateExpenseSurfaces(occurredOn);
   redirect(dayPath(occurredOn, "expense_updated"));
 }
 
@@ -149,11 +146,17 @@ export async function updateExpenseCategoryAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
 
   const { data: expense, error: expenseError } = await supabase
     .from("expenses")
     .select("amount")
     .eq("id", parsed.data.expenseId)
+    .eq("account_id", accountContext.currentAccount.id)
     .maybeSingle();
 
   if (expenseError || !expense) {
@@ -179,11 +182,17 @@ export async function updateExpenseAmountAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
 
   const { data: expense, error: expenseError } = await supabase
     .from("expenses")
     .select("category_id")
     .eq("id", parsed.data.expenseId)
+    .eq("account_id", accountContext.currentAccount.id)
     .maybeSingle();
 
   if (expenseError || !expense || !expense.category_id) {
@@ -210,15 +219,21 @@ export async function deleteExpenseAction(formData: FormData) {
   const { expenseId, occurredOn } = parsed.data;
   const returnPath = resolveReturnPath(formData.get("returnTo"), occurredOn, "expense_deleted");
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.from("expenses").delete().eq("id", expenseId);
+  const accountContext = await getAuthenticatedAccountContext();
+
+  if (!accountContext) {
+    redirect("/login");
+  }
+
+  const { error } = await supabase
+    .from("expenses")
+    .delete()
+    .eq("id", expenseId)
+    .eq("account_id", accountContext.currentAccount.id);
 
   if (error) {
     redirect(resolveReturnPath(formData.get("returnTo"), occurredOn, "expense_delete_error"));
   }
 
-  revalidateExpenseSurfaces(occurredOn);
-  if (formData.get("returnTo")?.toString().startsWith("/")) {
-    revalidatePath(formData.get("returnTo")!.toString());
-  }
   redirect(returnPath);
 }

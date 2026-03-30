@@ -1,4 +1,5 @@
 import { suggestCategoryIdForDraft } from "@/lib/classification/suggest";
+import { getAuthenticatedAccountContext } from "@/lib/accounts/queries";
 import { extractOcrLines } from "@/lib/ocr/extract";
 import {
   OcrProviderError,
@@ -125,6 +126,7 @@ function deriveImportGroupDefaults(input: {
 
 async function buildDraftRows(input: {
   userId: string;
+  accountId: string;
   importGroupId: string;
   files: File[];
   sourceType: OcrUploadSourceType;
@@ -146,6 +148,7 @@ async function buildDraftRows(input: {
 
       return {
         user_id: input.userId,
+        account_id: input.accountId,
         import_group_id: input.importGroupId,
         line_index: line.lineIndex ?? index,
         occurred_on: line.occurredOn ?? input.occurredOn,
@@ -199,11 +202,9 @@ export async function createUploadReviewDrafts(
   }
 
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const accountContext = await getAuthenticatedAccountContext();
 
-  if (!user) {
+  if (!accountContext) {
     return { ok: false, code: "unauthorized" };
   }
 
@@ -266,7 +267,8 @@ export async function createUploadReviewDrafts(
   const { data: importGroup, error: importGroupError } = await supabase
     .from("import_groups")
     .insert({
-      user_id: user.id,
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
       source_type: config.sourceType,
       status: "draft",
       title: defaults.title,
@@ -293,7 +295,8 @@ export async function createUploadReviewDrafts(
   }
 
   const draftRows = await buildDraftRows({
-    userId: user.id,
+    userId: accountContext.userId,
+    accountId: accountContext.currentAccount.id,
     importGroupId: importGroup.id,
     files: parsedFiles,
     sourceType: config.sourceType,

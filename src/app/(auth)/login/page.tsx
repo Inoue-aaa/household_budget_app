@@ -28,7 +28,7 @@ export default async function LoginPage() {
           <p className="caption">利用できるメールアドレス: {allowedEmail}</p>
         ) : null}
         <div style={{ height: 20 }} />
-        <LoginForm defaultEmail={allowedEmail} />
+        <LoginForm />
       </section>
     </main>
   );

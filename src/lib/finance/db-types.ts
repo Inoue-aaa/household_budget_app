@@ -10,9 +10,21 @@ export type CategoryRow = {
   updated_at: string;
 };
 
+export type HouseholdAccountRow = {
+  id: string;
+  user_id: string;
+  slug: "atsuki" | "sara" | "shared";
+  name: string;
+  color_key: "blue" | "pink" | "blend";
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ImportGroupRow = {
   id: string;
   user_id: string;
+  account_id: string;
   source_type: SourceType;
   status: ImportGroupStatus;
   title: string | null;
@@ -26,6 +38,7 @@ export type ImportGroupRow = {
 export type ExpenseDraftRow = {
   id: string;
   user_id: string;
+  account_id: string;
   import_group_id: string;
   line_index: number;
   occurred_on: string | null;
@@ -45,6 +58,7 @@ export type ExpenseDraftRow = {
 export type ExpenseRow = {
   id: string;
   user_id: string;
+  account_id: string;
   import_group_id: string;
   occurred_on: string;
   merchant_name: string | null;
@@ -62,6 +76,7 @@ export type ExpenseRow = {
 export type ClassificationRuleRow = {
   id: string;
   user_id: string;
+  account_id: string;
   normalized_item_name: string;
   normalized_merchant_name: string;
   category_id: string;
@@ -75,6 +90,7 @@ export type ClassificationRuleRow = {
 export type MonthlyBudgetRow = {
   id: string;
   user_id: string;
+  account_id: string;
   target_month: string;
   budget_amount: number;
   created_at: string;
@@ -92,6 +108,7 @@ export type UserPreferenceRow = {
   id: string;
   user_id: string;
   theme_name: string;
+  current_account_id: string | null;
   created_at: string;
   updated_at: string;
 };

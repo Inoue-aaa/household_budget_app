@@ -6,11 +6,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { signInWithPasswordAction } from "@/features/auth/actions";
 import { initialLoginFormState } from "@/features/auth/form-state";
 
-type LoginFormProps = {
-  defaultEmail?: string;
-};
-
-export function LoginForm({ defaultEmail = "" }: LoginFormProps) {
+export function LoginForm() {
   const [state, formAction] = useActionState(
     signInWithPasswordAction,
     initialLoginFormState,

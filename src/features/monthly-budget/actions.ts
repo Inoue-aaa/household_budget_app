@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getAuthenticatedAccountContext } from "@/lib/accounts/queries";
 import type { MonthlyBudgetFormState } from "@/features/monthly-budget/form-state";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -50,11 +50,9 @@ export async function saveMonthlyBudgetAction(
   }
 
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const accountContext = await getAuthenticatedAccountContext();
 
-  if (!user) {
+  if (!accountContext) {
     return {
       status: "error",
       message: "ログイン状態を確認してから、もう一度お試しください。",
@@ -77,7 +75,5 @@ export async function saveMonthlyBudgetAction(
     };
   }
 
-  revalidatePath("/home");
-  revalidatePath("/home/budget");
   redirect("/home?notice=budget_saved");
 }

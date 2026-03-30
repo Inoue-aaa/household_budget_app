@@ -1,7 +1,12 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { saveThemePreferenceAction } from "@/features/theme-preferences/actions";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  saveThemePreferenceAction,
+  type ThemePreferenceActionResult,
+} from "@/features/theme-preferences/actions";
 import { APP_THEMES, type AppThemeName } from "@/lib/theme/themes";
 
 type ThemePreferenceFormProps = {
@@ -9,14 +14,64 @@ type ThemePreferenceFormProps = {
 };
 
 export function ThemePreferenceForm({ currentTheme }: ThemePreferenceFormProps) {
+  const router = useRouter();
+  const [selectedTheme, setSelectedTheme] = useState(currentTheme);
+  const [result, setResult] = useState<ThemePreferenceActionResult | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setSelectedTheme(currentTheme);
+  }, [currentTheme]);
+
+  const activeTheme = useMemo(() => selectedTheme, [selectedTheme]);
+
   return (
-    <form action={saveThemePreferenceAction} className="field-stack">
+    <form
+      className="field-stack"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        const nextTheme = formData.get("themeName")?.toString() as AppThemeName | undefined;
+
+        if (!nextTheme) {
+          return;
+        }
+
+        setResult(null);
+        setSelectedTheme(nextTheme);
+        document.body.dataset.theme = nextTheme;
+
+        startTransition(async () => {
+          const actionResult = await saveThemePreferenceAction(formData);
+
+          if (actionResult.status === "unauthorized") {
+            router.push("/login");
+            return;
+          }
+
+          if (actionResult.status === "error") {
+            setSelectedTheme(currentTheme);
+            document.body.dataset.theme = currentTheme;
+            setResult(actionResult);
+            return;
+          }
+
+          setResult(actionResult);
+          router.refresh();
+        });
+      }}
+    >
       <div className="theme-grid">
         {APP_THEMES.map((theme) => (
-          <label className="theme-card" data-active={theme.name === currentTheme} key={theme.name}>
+          <label className="theme-card" data-active={theme.name === activeTheme} key={theme.name}>
             <input
-              defaultChecked={theme.name === currentTheme}
+              checked={theme.name === activeTheme}
+              disabled={isPending}
               name="themeName"
+              onChange={() => {
+                setSelectedTheme(theme.name);
+                document.body.dataset.theme = theme.name;
+              }}
               type="radio"
               value={theme.name}
             />
@@ -26,7 +81,7 @@ export function ThemePreferenceForm({ currentTheme }: ThemePreferenceFormProps) 
                 {
                   "--theme-preview-background": theme.preview.background,
                   "--theme-preview-surface": theme.preview.surface,
-                  "--theme-preview-accent": theme.preview.accent
+                  "--theme-preview-accent": theme.preview.accent,
                 } as CSSProperties
               }
             />
@@ -38,8 +93,12 @@ export function ThemePreferenceForm({ currentTheme }: ThemePreferenceFormProps) 
         ))}
       </div>
 
-      <button className="button" type="submit">
-        表示カラーを保存
+      {result?.status === "error" ? (
+        <p className="form-message form-message-error">{result.message}</p>
+      ) : null}
+
+      <button className="button" disabled={isPending} type="submit">
+        {isPending ? "保存中..." : "表示カラーを保存"}
       </button>
     </form>
   );
