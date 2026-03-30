@@ -1,0 +1,85 @@
+import Link from "next/link";
+import { NoticeBanner } from "@/components/NoticeBanner";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { SectionCard } from "@/components/SectionCard";
+import type { PendingImportsPageSnapshot } from "@/lib/finance/types";
+import { getRegisterNotice } from "@/lib/ui/notices";
+
+type RegisterTabPanelProps = {
+  snapshot: PendingImportsPageSnapshot;
+  noticeCode?: string;
+};
+
+export function RegisterTabPanel({
+  snapshot,
+  noticeCode,
+}: RegisterTabPanelProps) {
+  const registerNotice = getRegisterNotice(noticeCode);
+
+  return (
+    <div className="page-stack">
+      {registerNotice ? (
+        <NoticeBanner
+          tone={registerNotice.tone}
+          title={registerNotice.title}
+          description={registerNotice.description}
+        />
+      ) : null}
+
+      <ScreenHeader
+        eyebrow="Register"
+        title="登録"
+        description={
+          <>
+            ・手入力
+            <br />
+            ・レシートの画像アップロード
+            <br />
+            ・クレジット明細画像のアップロード
+            <br />
+            から支出を登録できます。
+          </>
+        }
+      />
+
+      <SectionCard title="支出を登録する">
+        <div className="link-grid">
+          <Link className="link-card" href="/register/manual">
+            <strong>手入力で登録</strong>
+            <span>日付、金額、内容、カテゴリを直接入力して保存します。</span>
+          </Link>
+          <Link
+            className="link-card link-card-featured"
+            href="/register/receipt"
+          >
+            <strong>レシートを読み取る</strong>
+            <span>画像から下書きを作成し、確認画面で修正してから保存します。</span>
+          </Link>
+          <Link className="link-card" href="/register/credit">
+            <strong>クレジット明細を読み取る</strong>
+            <span>
+              スクリーンショットを明細単位で確認し、必要な修正後に保存します。
+            </span>
+          </Link>
+        </div>
+      </SectionCard>
+
+      {snapshot.totalCount > 0 ? (
+        <Link
+          className="surface section-card section-card-link"
+          href="/register/pending"
+        >
+          <div className="section-card-link-header">
+            <h2 className="section-title">未登録データ</h2>
+            <span className="section-card-link-arrow" aria-hidden="true">
+              ›
+            </span>
+          </div>
+          <p className="section-copy">
+            登録が中断されたデータが{snapshot.totalCount}件あります。確認画面へ戻り処理を続けることができます。
+          </p>
+        </Link>
+      ) : null}
+    </div>
+  );
+}

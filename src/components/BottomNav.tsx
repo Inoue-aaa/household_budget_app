@@ -1,35 +1,95 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import type { Route } from "next";
+import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import {
+  APP_SHELL_SET_TAB_EVENT,
+  APP_SHELL_TAB_CHANGED_EVENT,
+  getAppShellHref,
+  isAppShellTab,
+  type AppShellTab,
+} from "@/features/app-shell/tabs";
 
 const navItems = [
-  { href: "/home", label: "ホーム" },
-  { href: "/register", label: "登録" },
-  { href: "/expenses", label: "支出" },
-  { href: "/settings", label: "設定" }
+  { href: getAppShellHref("home") as Route, label: "ホーム", tab: "home" },
+  { href: getAppShellHref("register") as Route, label: "登録", tab: "register" },
+  { href: getAppShellHref("expenses") as Route, label: "支出", tab: "expenses" },
+  { href: getAppShellHref("settings") as Route, label: "設定", tab: "settings" },
 ] as const;
+
+function resolveLegacyTab(pathname: string): AppShellTab {
+  if (pathname.startsWith("/settings")) {
+    return "settings";
+  }
+
+  if (pathname.startsWith("/expenses")) {
+    return "expenses";
+  }
+
+  if (pathname.startsWith("/register")) {
+    return "register";
+  }
+
+  return "home";
+}
 
 export function BottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const shellTab = searchParams.get("tab");
+  const derivedActiveTab =
+    pathname === "/app" && shellTab && isAppShellTab(shellTab)
+      ? shellTab
+      : resolveLegacyTab(pathname);
+  const [activeTab, setActiveTab] = useState<AppShellTab>(derivedActiveTab);
+
+  useEffect(() => {
+    setActiveTab(derivedActiveTab);
+  }, [derivedActiveTab]);
+
+  useEffect(() => {
+    const handleChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ tab?: string }>).detail;
+
+      if (detail?.tab && isAppShellTab(detail.tab)) {
+        setActiveTab(detail.tab);
+      }
+    };
+
+    window.addEventListener(APP_SHELL_TAB_CHANGED_EVENT, handleChanged as EventListener);
+    return () => {
+      window.removeEventListener(APP_SHELL_TAB_CHANGED_EVENT, handleChanged as EventListener);
+    };
+  }, []);
 
   return (
     <nav aria-label="主なナビゲーション" className="bottom-nav">
       <div className="bottom-nav-inner">
-        {navItems.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        {navItems.map((item) => (
+          <Link
+            className="bottom-nav-link"
+            data-active={activeTab === item.tab}
+            href={item.href}
+            key={item.href}
+            onClick={(event) => {
+              if (pathname !== "/app") {
+                return;
+              }
 
-          return (
-            <Link
-              className="bottom-nav-link"
-              data-active={active}
-              href={item.href}
-              key={item.href}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+              event.preventDefault();
+              setActiveTab(item.tab);
+              window.dispatchEvent(
+                new CustomEvent(APP_SHELL_SET_TAB_EVENT, {
+                  detail: { tab: item.tab },
+                })
+              );
+            }}
+          >
+            {item.label}
+          </Link>
+        ))}
       </div>
     </nav>
   );

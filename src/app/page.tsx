@@ -7,5 +7,5 @@ export default async function IndexPage() {
     data: { user }
   } = await supabase.auth.getUser();
 
-  redirect(user ? "/home" : "/login");
+  redirect(user ? "/app?tab=home" : "/login");
 }

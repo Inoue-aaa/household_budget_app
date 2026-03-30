@@ -10,7 +10,7 @@ export default async function LoginPage() {
   } = await supabase.auth.getUser();
 
   if (user) {
-    redirect("/home");
+    redirect("/app?tab=home");
   }
 
   const allowedEmail = getAllowedUserEmail();

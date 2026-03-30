@@ -127,7 +127,7 @@ export async function signInWithPasswordAction(
     });
   }
 
-  redirect("/home");
+  redirect("/app?tab=home");
 }
 
 export async function signUpWithPasswordAction(
@@ -175,7 +175,7 @@ export async function signUpWithPasswordAction(
   }
 
   if (data.session) {
-    redirect("/home");
+    redirect("/app?tab=home");
   }
 
   return {

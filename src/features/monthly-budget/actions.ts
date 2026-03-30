@@ -75,5 +75,5 @@ export async function saveMonthlyBudgetAction(
     };
   }
 
-  redirect("/home?notice=budget_saved");
+  redirect("/app?tab=home&notice=budget_saved");
 }

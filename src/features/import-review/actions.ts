@@ -17,10 +17,6 @@ function reviewPath(importGroupId: string, notice?: string) {
     : `/register/review/${importGroupId}`) as Route;
 }
 
-function registerPath(notice?: string) {
-  return (notice ? `/register?notice=${encodeURIComponent(notice)}` : "/register") as Route;
-}
-
 function pendingPath(notice?: string) {
   return (notice
     ? `/register/pending?notice=${encodeURIComponent(notice)}`
@@ -544,7 +540,7 @@ export async function confirmDraftsAction(formData: FormData) {
     redirect(reviewPath(importGroupId, "confirm-error"));
   }
 
-  redirect("/expenses?created=1");
+  redirect("/app?tab=expenses&created=1");
 }
 
 export async function discardImportGroupAction(formData: FormData) {
@@ -583,7 +579,7 @@ export async function discardImportGroupAction(formData: FormData) {
     redirect(reviewPath(importGroupId, "discard-error"));
   }
 
-  redirect(registerPath("group-discarded"));
+  redirect("/app?tab=register&notice=group-discarded");
 }
 
 export async function deleteImportGroupAction(formData: FormData) {
@@ -619,10 +615,10 @@ export async function deleteImportGroupAction(formData: FormData) {
   });
 
   if (error) {
-    redirect("/expenses?delete_error=1");
+    redirect("/app?tab=expenses&delete_error=1");
   }
 
-  redirect("/expenses?deleted=1");
+  redirect("/app?tab=expenses&deleted=1");
 }
 
 export async function deletePendingImportGroupAction(formData: FormData) {

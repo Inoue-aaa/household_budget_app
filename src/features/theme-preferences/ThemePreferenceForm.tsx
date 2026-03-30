@@ -11,9 +11,13 @@ import { APP_THEMES, type AppThemeName } from "@/lib/theme/themes";
 
 type ThemePreferenceFormProps = {
   currentTheme: AppThemeName;
+  onSavedTheme?: (themeName: AppThemeName) => void;
 };
 
-export function ThemePreferenceForm({ currentTheme }: ThemePreferenceFormProps) {
+export function ThemePreferenceForm({
+  currentTheme,
+  onSavedTheme,
+}: ThemePreferenceFormProps) {
   const router = useRouter();
   const [selectedTheme, setSelectedTheme] = useState(currentTheme);
   const [result, setResult] = useState<ThemePreferenceActionResult | null>(null);
@@ -57,7 +61,12 @@ export function ThemePreferenceForm({ currentTheme }: ThemePreferenceFormProps) 
           }
 
           setResult(actionResult);
-          router.refresh();
+          if (actionResult.status === "success") {
+            onSavedTheme?.(actionResult.themeName);
+          }
+          if (!onSavedTheme && actionResult.status === "success") {
+            router.refresh();
+          }
         });
       }}
     >

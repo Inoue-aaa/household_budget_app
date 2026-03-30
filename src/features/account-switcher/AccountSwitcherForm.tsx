@@ -11,6 +11,7 @@ import type { HouseholdAccountOption } from "@/lib/finance/types";
 type AccountSwitcherFormProps = {
   accounts: HouseholdAccountOption[];
   currentAccountId: string;
+  onSwitchAccount?: (accountId: string) => Promise<SwitchAccountActionResult>;
 };
 
 function getAccountIconClass(colorKey: HouseholdAccountOption["colorKey"]) {
@@ -28,6 +29,7 @@ function getAccountIconClass(colorKey: HouseholdAccountOption["colorKey"]) {
 export function AccountSwitcherForm({
   accounts,
   currentAccountId,
+  onSwitchAccount,
 }: AccountSwitcherFormProps) {
   const router = useRouter();
   const [selectedAccountId, setSelectedAccountId] = useState(currentAccountId);
@@ -59,9 +61,13 @@ export function AccountSwitcherForm({
                 setSelectedAccountId(account.id);
 
                 startTransition(async () => {
-                  const formData = new FormData();
-                  formData.set("accountId", account.id);
-                  const actionResult = await switchCurrentAccountAction(formData);
+                  const actionResult = onSwitchAccount
+                    ? await onSwitchAccount(account.id)
+                    : await (async () => {
+                        const formData = new FormData();
+                        formData.set("accountId", account.id);
+                        return switchCurrentAccountAction(formData);
+                      })();
 
                   if (actionResult.status === "unauthorized") {
                     router.push("/login");
@@ -75,7 +81,9 @@ export function AccountSwitcherForm({
                   }
 
                   setResult(actionResult);
-                  router.refresh();
+                  if (!onSwitchAccount) {
+                    router.refresh();
+                  }
                 });
               }}
               type="button"

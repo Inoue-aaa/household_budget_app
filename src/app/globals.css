@@ -706,6 +706,76 @@ button {
   color: var(--danger);
 }
 
+.app-shell-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(8, 15, 31, 0.56);
+  backdrop-filter: blur(10px);
+}
+
+.app-shell-loading-dialog {
+  width: min(100%, 260px);
+  border: 1px solid var(--card-border);
+  border-radius: 22px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-bg-strong) 88%, transparent), color-mix(in srgb, var(--card-bg) 96%, transparent));
+  box-shadow: var(--surface-shadow);
+  padding: 20px 18px;
+  text-align: center;
+}
+
+.app-shell-loading-spinner {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-top-color: var(--accent);
+  animation: app-shell-spin 0.9s linear infinite;
+}
+
+.app-shell-loading-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.app-shell-loading-copy {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.app-shell-floating-message {
+  position: fixed;
+  left: 50%;
+  bottom: 120px;
+  z-index: 81;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 32px), 320px);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--card-border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card-bg-strong) 92%, transparent);
+  box-shadow: var(--surface-shadow);
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+@keyframes app-shell-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .field {
   display: flex;
   flex-direction: column;

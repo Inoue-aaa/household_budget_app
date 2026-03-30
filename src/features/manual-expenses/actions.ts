@@ -211,5 +211,5 @@ export async function createManualExpenseAction(
     });
   }
 
-  redirect("/expenses?created=1");
+  redirect("/app?tab=expenses&created=1");
 }
