@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { LampDesk, MoonStar, Palette, SunMedium } from "lucide-react";
 import {
   saveThemePreferenceAction,
   type ThemePreferenceActionResult,
@@ -34,11 +35,13 @@ export function ThemePreferenceForm({
   const router = useRouter();
   const initialSelection = useMemo(
     () => parseThemeSelection(currentTheme),
-    [currentTheme]
+    [currentTheme],
   );
   const [scheme, setScheme] = useState<AppThemeScheme>(initialSelection.scheme);
   const [accent, setAccent] = useState<AppThemeAccent>(initialSelection.accent);
-  const [result, setResult] = useState<ThemePreferenceActionResult | null>(null);
+  const [result, setResult] = useState<ThemePreferenceActionResult | null>(
+    null,
+  );
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -94,8 +97,13 @@ export function ThemePreferenceForm({
       <div className="field-stack theme-selector-stack">
         <div className="field-stack theme-selector-group">
           <div>
-            <p className="theme-section-label">表示モード</p>
-            <p className="caption">画面全体の明るさを先に選べます。</p>
+            <p className="theme-section-label">
+              <span className="theme-section-label-icon" aria-hidden="true">
+                <LampDesk size={15} />
+              </span>
+              <span>表示モード</span>
+            </p>
+            <p className="caption">画面全体の明るさを選べます。</p>
           </div>
           <div className="theme-scheme-grid">
             {APP_THEME_SCHEMES.map((option) => (
@@ -106,13 +114,26 @@ export function ThemePreferenceForm({
                 disabled={isPending}
                 key={option.value}
                 onClick={() => {
-                  const firstAccent = APP_THEME_ACCENTS_BY_SCHEME[option.value][0];
+                  const firstAccent =
+                    APP_THEME_ACCENTS_BY_SCHEME[option.value][0];
                   setScheme(option.value);
                   setAccent(firstAccent.value);
                 }}
                 type="button"
               >
-                <span className="theme-scheme-title">{option.label}</span>
+                <span className="theme-scheme-header">
+                  <span
+                    className={`theme-scheme-icon theme-scheme-icon-${option.value}`}
+                    aria-hidden="true"
+                  >
+                    {option.value === "dark" ? (
+                      <MoonStar size={15} />
+                    ) : (
+                      <SunMedium size={15} />
+                    )}
+                  </span>
+                  <span className="theme-scheme-title">{option.label}</span>
+                </span>
                 <span className="theme-scheme-copy">
                   {option.value === "dark"
                     ? "落ち着いたダークトーン"
@@ -125,12 +146,22 @@ export function ThemePreferenceForm({
 
         <div className="field-stack theme-selector-group">
           <div>
-            <p className="theme-section-label">アクセント</p>
-            <p className="caption">背景の雰囲気と差し色のニュアンスを選べます。</p>
+            <p className="theme-section-label">
+              <span className="theme-section-label-icon" aria-hidden="true">
+                <Palette size={15} />
+              </span>
+              <span>アクセント</span>
+            </p>
+            <p className="caption">
+              背景の雰囲気と差し色のニュアンスを選べます。
+            </p>
           </div>
           <div className="theme-accent-grid">
             {accentOptions.map((option) => {
-              const themeName = resolveThemeNameFromSelection(scheme, option.value);
+              const themeName = resolveThemeNameFromSelection(
+                scheme,
+                option.value,
+              );
 
               return (
                 <button

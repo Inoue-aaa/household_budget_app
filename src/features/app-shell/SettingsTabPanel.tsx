@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Landmark, Palette } from "lucide-react";
+import { Landmark } from "lucide-react";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { signOutAction } from "@/features/auth/actions";
@@ -72,16 +72,8 @@ export function SettingsTabPanel({
 
       <SectionCard
         title="表示カラー"
-        description="表示モードとアクセントを分けて選べるようにしています。"
+        description="表示モードとアクセントを組み合わせて調整できます。"
       >
-        <div className="settings-section-accent">
-          <span className="settings-section-icon" aria-hidden="true">
-            <Palette size={16} />
-          </span>
-          <span className="caption">
-            Light / Dark とアクセントを組み合わせて調整できます。
-          </span>
-        </div>
         <ThemePreferenceForm
           currentTheme={themeName}
           onSavedTheme={onThemeSaved}
