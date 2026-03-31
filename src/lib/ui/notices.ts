@@ -149,6 +149,28 @@ export function getReviewNotice(code?: string): NoticeConfig | null {
 }
 
 export function getRegisterNotice(code?: string): NoticeConfig | null {
+  if (code === "fixed-expense-added") {
+    return {
+      tone: "success",
+      title: "固定費を追加しました",
+      description: "今月の支出として固定費を追加しました。",
+    };
+  }
+
+  if (code === "fixed-expense-already-added") {
+    return {
+      title: "この月には追加済みです",
+      description: "選択した固定費は、今月の支出へすでに追加されています。",
+    };
+  }
+
+  if (code === "fixed-expense-add-error") {
+    return {
+      title: "固定費の追加に失敗しました",
+      description: "時間をおいてから、もう一度お試しください。",
+    };
+  }
+
   const map: Record<RegisterNoticeCode, NoticeConfig> = {
     "group-discarded": {
       tone: "success",

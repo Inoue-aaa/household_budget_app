@@ -12,11 +12,16 @@ import {
 } from "@/features/fixed-expenses/form-state";
 import { computeNextScheduledAt } from "@/features/fixed-expenses/schedule";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { monthDateRange } from "@/lib/utils/format";
 
 function recurringExpensesPath(notice?: string) {
   return (notice
     ? `/register/fixed/list?notice=${encodeURIComponent(notice)}`
     : "/register/fixed/list") as Route;
+}
+
+function registerPath(notice?: string) {
+  return (notice ? `/app?tab=register&notice=${encodeURIComponent(notice)}` : "/app?tab=register") as Route;
 }
 
 function toValues(input: {
@@ -274,6 +279,10 @@ const deleteRecurringExpenseSchema = z.object({
   recurringExpenseId: z.string().uuid(),
 });
 
+const addRecurringExpenseCandidateSchema = z.object({
+  recurringExpenseId: z.string().uuid(),
+});
+
 export async function deleteRecurringExpenseAction(formData: FormData) {
   const parsed = deleteRecurringExpenseSchema.safeParse({
     recurringExpenseId: formData.get("recurringExpenseId"),
@@ -300,4 +309,111 @@ export async function deleteRecurringExpenseAction(formData: FormData) {
   }
 
   redirect(recurringExpensesPath("fixed-expense-deleted"));
+}
+
+export async function addRecurringExpenseCandidateAction(formData: FormData) {
+  const parsed = addRecurringExpenseCandidateSchema.safeParse({
+    recurringExpenseId: formData.get("recurringExpenseId"),
+  });
+
+  if (!parsed.success) {
+    redirect(registerPath("fixed-expense-add-error"));
+  }
+
+  const accountContext = await getAuthenticatedAccountContext();
+  if (!accountContext) {
+    redirect("/login");
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data: recurringExpense, error: recurringExpenseError } = await supabase
+    .from("recurring_expenses")
+    .select(
+      "id, category_id, name, amount, memo, schedule_day, schedule_time, is_active, start_date, end_date",
+    )
+    .eq("id", parsed.data.recurringExpenseId)
+    .eq("account_id", accountContext.currentAccount.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (recurringExpenseError || !recurringExpense) {
+    redirect(registerPath("fixed-expense-add-error"));
+  }
+
+  const now = new Date();
+  const monthPrefix = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 7);
+  const { start, end } = monthDateRange(new Date(`${monthPrefix}-01T00:00:00`));
+  const occurredOn = `${monthPrefix}-${String(
+    Math.min(
+      recurringExpense.schedule_day,
+      new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
+    ),
+  ).padStart(2, "0")}`;
+
+  if (
+    (recurringExpense.start_date && occurredOn < recurringExpense.start_date) ||
+    (recurringExpense.end_date && occurredOn > recurringExpense.end_date)
+  ) {
+    redirect(registerPath("fixed-expense-add-error"));
+  }
+
+  const { data: existingExpense } = await supabase
+    .from("expenses")
+    .select("id")
+    .eq("account_id", accountContext.currentAccount.id)
+    .eq("recurring_expense_id", recurringExpense.id)
+    .gte("occurred_on", start)
+    .lte("occurred_on", end)
+    .maybeSingle();
+
+  if (existingExpense) {
+    redirect(registerPath("fixed-expense-already-added"));
+  }
+
+  const { data: importGroup, error: importGroupError } = await supabase
+    .from("import_groups")
+    .insert({
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
+      recurring_expense_id: recurringExpense.id,
+      source_type: "manual",
+      status: "confirmed",
+      title: recurringExpense.name,
+      occurred_on: occurredOn,
+      confirmed_at: new Date().toISOString(),
+      metadata: {
+        origin: "recurring-candidate",
+      },
+    })
+    .select("id")
+    .single();
+
+  if (importGroupError || !importGroup) {
+    redirect(registerPath("fixed-expense-add-error"));
+  }
+
+  const { error: expenseError } = await supabase.from("expenses").insert({
+    user_id: accountContext.userId,
+    account_id: accountContext.currentAccount.id,
+    import_group_id: importGroup.id,
+    recurring_expense_id: recurringExpense.id,
+    occurred_on: occurredOn,
+    merchant_name: null,
+    title: recurringExpense.name,
+    amount: recurringExpense.amount,
+    suggested_category_id: recurringExpense.category_id,
+    category_id: recurringExpense.category_id,
+    note: recurringExpense.memo,
+    source_type: "manual",
+    is_category_corrected: false,
+  });
+
+  if (expenseError) {
+    await supabase.from("import_groups").delete().eq("id", importGroup.id);
+    redirect(registerPath("fixed-expense-add-error"));
+  }
+
+  redirect(registerPath("fixed-expense-added"));
 }

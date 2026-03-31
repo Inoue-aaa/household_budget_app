@@ -38,10 +38,12 @@ import type {
   OcrDebugInfo,
   PendingImportGroupSummary,
   PendingImportsPageSnapshot,
+  RecurringExpenseCandidateItem,
   ReportMonthOption
 } from "@/lib/finance/types";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatMonthLabel, monthDateRange, monthStartDateString } from "@/lib/utils/format";
+import { getCurrentMonthOccurrence, isOccurrenceWithinRange } from "@/features/fixed-expenses/schedule";
 
 function createFallbackAccountSnapshot(): CurrentAccountSnapshot {
   return {
@@ -1362,13 +1364,21 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
         account: createFallbackAccountSnapshot(),
         groups: [],
         totalCount: 0,
+        recurringExpenseCandidates: [],
       };
     }
 
     const supabase = await createServerSupabaseClient();
+    const currentMonth = new Date();
+    const { start, end } = monthDateRange(currentMonth);
 
-    const [{ data: groups, error: groupsError }, { data: drafts, error: draftsError }] =
-      await Promise.all([
+    const [
+      { data: groups, error: groupsError },
+      { data: drafts, error: draftsError },
+      { data: recurringExpenseRows, error: recurringExpensesError },
+      { data: existingRecurringRows, error: existingRecurringRowsError },
+      categories,
+    ] = await Promise.all([
         supabase
           .from("import_groups")
           .select("id, source_type, created_at, occurred_on, title")
@@ -1379,29 +1389,79 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
           .from("expense_drafts")
           .select("id, import_group_id, merchant_name, title, created_at, line_index")
           .eq("account_id", accountContext.currentAccount.id)
-          .order("created_at", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("recurring_expenses")
+          .select(
+            "id, user_id, account_id, category_id, name, amount, schedule_day, schedule_time, memo, is_active, start_date, end_date, last_applied_at, next_scheduled_at, created_at, updated_at",
+          )
+          .eq("account_id", accountContext.currentAccount.id)
+          .eq("is_active", true)
+          .order("schedule_day", { ascending: true })
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("expenses")
+          .select("recurring_expense_id")
+          .eq("account_id", accountContext.currentAccount.id)
+          .gte("occurred_on", start)
+          .lte("occurred_on", end)
+          .not("recurring_expense_id", "is", null),
+        listCategories(),
       ]);
 
     if (groupsError || draftsError) {
       return {
         account: accountContext,
         groups: [],
-        totalCount: 0
+        totalCount: 0,
+        recurringExpenseCandidates: [],
       };
     }
 
     const pendingGroups = buildPendingImportGroups(groups ?? [], drafts ?? []);
+    const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
+    const existingRecurringIds = new Set(
+      (existingRecurringRows ?? [])
+        .map((row) => row.recurring_expense_id)
+        .filter((value): value is string => typeof value === "string"),
+    );
+    const recurringExpenseCandidates: RecurringExpenseCandidateItem[] =
+      recurringExpensesError || existingRecurringRowsError || !recurringExpenseRows
+        ? []
+        : recurringExpenseRows
+            .map((item) => {
+              const occurrence = getCurrentMonthOccurrence(item);
+              if (!isOccurrenceWithinRange(item, occurrence.occurredOn)) {
+                return null;
+              }
+
+              return {
+                recurringExpenseId: item.id,
+                name: item.name,
+                amount: item.amount,
+                categoryId: item.category_id,
+                categoryName: categoryMap.get(item.category_id) ?? "譛ｪ險ｭ螳壹き繝・ざ繝ｪ",
+                scheduleDay: item.schedule_day,
+                scheduleTime: item.schedule_time.slice(0, 5),
+                occurredOn: occurrence.occurredOn,
+                memo: item.memo,
+                isAlreadyAdded: existingRecurringIds.has(item.id),
+              };
+            })
+            .filter((item): item is RecurringExpenseCandidateItem => item != null);
 
     return {
       account: accountContext,
       groups: pendingGroups,
-      totalCount: pendingGroups.length
+      totalCount: pendingGroups.length,
+      recurringExpenseCandidates,
     };
   } catch {
     return {
       account: createFallbackAccountSnapshot(),
       groups: [],
-      totalCount: 0
+      totalCount: 0,
+      recurringExpenseCandidates: [],
     };
   }
 }

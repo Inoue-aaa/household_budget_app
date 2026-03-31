@@ -3,6 +3,7 @@ import { Pencil, ScanLine, CreditCard, AlertCircle, Repeat2 } from "lucide-react
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
+import { RecurringExpenseCandidatesSection } from "@/features/fixed-expenses/RecurringExpenseCandidatesSection";
 import type { PendingImportsPageSnapshot } from "@/lib/finance/types";
 import { getRegisterNotice } from "@/lib/ui/notices";
 
@@ -81,6 +82,8 @@ export function RegisterTabPanel({
           </Link>
         </div>
       </SectionCard>
+
+      <RecurringExpenseCandidatesSection items={snapshot.recurringExpenseCandidates} />
 
       {snapshot.totalCount > 0 ? (
         <Link

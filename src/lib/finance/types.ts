@@ -242,6 +242,20 @@ export type PendingImportsPageSnapshot = {
   account: CurrentAccountSnapshot;
   groups: PendingImportGroupSummary[];
   totalCount: number;
+  recurringExpenseCandidates: RecurringExpenseCandidateItem[];
+};
+
+export type RecurringExpenseCandidateItem = {
+  recurringExpenseId: string;
+  name: string;
+  amount: number;
+  categoryId: string;
+  categoryName: string;
+  scheduleDay: number;
+  scheduleTime: string;
+  occurredOn: string;
+  memo: string | null;
+  isAlreadyAdded: boolean;
 };
 
 export type RecurringExpenseListItem = {
