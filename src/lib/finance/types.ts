@@ -233,6 +233,93 @@ export type AnalysisSnapshot = {
   increasedCategories: AnalysisCategoryTotalItem[];
 };
 
+export type ConsultationTemplateKey =
+  | "high_spend_categories"
+  | "saving_points"
+  | "increased_spending"
+  | "over_budget"
+  | "fixed_variable_balance"
+  | "spending_summary";
+
+export type ConsultationInsightKind =
+  | "budget_over"
+  | "budget_near_limit"
+  | "category_increase"
+  | "spending_concentration"
+  | "frequent_small_spend"
+  | "fixed_cost_heavy";
+
+export type ConsultationInsight = {
+  id: string;
+  kind: ConsultationInsightKind;
+  title: string;
+  summary: string;
+  relatedCategoryId: string | null;
+  relatedCategoryName: string | null;
+  severity: "low" | "medium" | "high";
+  supportingMetrics: Record<string, number | string | null>;
+};
+
+export type ConsultationEvidenceSummary = {
+  totalAmount: number;
+  topCategories: { categoryName: string; totalAmount: number }[];
+  differenceAmount: number;
+  changeRate: number | null;
+};
+
+export type ConsultationMessageItem = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+  templateKey: ConsultationTemplateKey | null;
+  answerSummary: string | null;
+  evidenceSummary: ConsultationEvidenceSummary | null;
+  detectedInsights: ConsultationInsight[];
+  primaryCategoryId: string | null;
+  primaryCategoryName: string | null;
+  isSaved: boolean;
+};
+
+export type ConsultationSessionItem = {
+  id: string;
+  startDate: string;
+  endDate: string;
+  periodLabel: string;
+  title: string;
+  lastQuestion: string | null;
+  lastAnswerSummary: string | null;
+  latestTemplateKey: ConsultationTemplateKey | null;
+  lastConsultedAt: string;
+};
+
+export type ConsultationSessionDetail = ConsultationSessionItem & {
+  messages: ConsultationMessageItem[];
+};
+
+export type SavedConsultationCardItem = {
+  id: string;
+  sessionId: string;
+  messageId: string;
+  title: string;
+  answerSummary: string;
+  relatedCategoryId: string | null;
+  relatedCategoryName: string | null;
+  createdAt: string;
+  periodLabel: string;
+};
+
+export type AiConsultationPageSnapshot = {
+  account: CurrentAccountSnapshot;
+  defaultStartDate: string;
+  defaultEndDate: string;
+  activeSession: ConsultationSessionDetail | null;
+  recentSessions: ConsultationSessionItem[];
+  savedCards: SavedConsultationCardItem[];
+  monthlySuggestions: ConsultationInsight[];
+  monthLabel: string;
+};
+
 export type YearlySpendingTrendItem = {
   month: string;
   monthLabel: string;

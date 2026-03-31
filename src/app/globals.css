@@ -2996,7 +2996,7 @@ button {
 
 .analysis-answer-evidence {
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .analysis-answer-subtitle {
@@ -3010,18 +3010,94 @@ button {
 .ai-template-chip-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .ai-template-chip {
   width: auto;
-  min-height: 36px;
-  padding-inline: 14px;
+  min-height: 34px;
+  padding-inline: 13px;
 }
 
 .analysis-answer-actions {
   display: flex;
   justify-content: flex-start;
+}
+
+.analysis-inline-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.analysis-message-card {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.analysis-message-question {
+  color: var(--text-primary);
+  line-height: 1.65;
+}
+
+.analysis-consultation-stack {
+  gap: 16px;
+}
+
+.analysis-message-list {
+  gap: 14px;
+}
+
+.analysis-save-button,
+.analysis-inline-action {
+  min-height: 32px;
+  padding-inline: 12px;
+  font-size: 0.82rem;
+}
+
+.analysis-insight-list {
+  display: grid;
+  gap: 10px;
+}
+
+.analysis-insight-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-faint);
+}
+
+.analysis-insight-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.analysis-followup-card {
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.analysis-followup-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.budget-settings-category-row-focused {
+  border-color: var(--accent-border);
+  background: var(--surface-faint);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 @media (max-width: 640px) {
@@ -3034,10 +3110,14 @@ button {
   }
 
   .analysis-answer-actions {
-    justify-content: stretch;
+    justify-content: flex-start;
   }
 
   .analysis-answer-actions .action-button {
-    width: 100%;
+    width: auto;
+  }
+
+  .analysis-inline-actions .action-button {
+    width: auto;
   }
 }

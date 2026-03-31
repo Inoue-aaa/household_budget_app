@@ -4,8 +4,15 @@ import { SectionCard } from "@/components/SectionCard";
 import { BudgetSettingsForm } from "@/features/monthly-budget/BudgetSettingsForm";
 import { getBudgetTemplateSnapshot } from "@/lib/finance/queries";
 
-export default async function HomeBudgetPage() {
+type HomeBudgetPageProps = {
+  searchParams?: Promise<{
+    focusCategory?: string;
+  }>;
+};
+
+export default async function HomeBudgetPage({ searchParams }: HomeBudgetPageProps) {
   const snapshot = await getBudgetTemplateSnapshot();
+  const params = searchParams ? await searchParams : undefined;
 
   return (
     <div className="page-stack">
@@ -23,6 +30,7 @@ export default async function HomeBudgetPage() {
           monthLabel={snapshot.monthLabel}
           targetMonth={snapshot.targetMonth}
           tracksCategoryBudgets={snapshot.tracksCategoryBudgets}
+          focusCategoryId={params?.focusCategory ?? null}
         />
       </SectionCard>
 

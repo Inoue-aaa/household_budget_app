@@ -17,6 +17,7 @@ type BudgetSettingsFormProps = {
   initialCategoryBudgets: BudgetCategoryAllocation[];
   categories: CategoryOption[];
   tracksCategoryBudgets: boolean;
+  focusCategoryId?: string | null;
 };
 
 function findInitialCategoryValue(
@@ -34,6 +35,7 @@ export function BudgetSettingsForm({
   initialCategoryBudgets,
   categories,
   tracksCategoryBudgets,
+  focusCategoryId,
 }: BudgetSettingsFormProps) {
   const initialValues: MonthlyBudgetFormValues = {
     targetMonth,
@@ -127,7 +129,11 @@ export function BudgetSettingsForm({
                 null;
 
               return (
-                <div className="list-row budget-settings-category-row" key={category.id}>
+                <div
+                  className={`list-row budget-settings-category-row${focusCategoryId === category.id ? " budget-settings-category-row-focused" : ""}`}
+                  id={`budget-category-${category.id}`}
+                  key={category.id}
+                >
                   <div className="budget-settings-category-main">
                     <p className="list-title">{category.name}</p>
                     {previousMonthExists ? (

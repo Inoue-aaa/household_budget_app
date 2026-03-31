@@ -171,3 +171,43 @@ export type RecurringExpenseLogRow = {
   reason: string | null;
   created_at: string;
 };
+
+export type ConsultationSessionRow = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  start_date: string;
+  end_date: string;
+  latest_template_key: string | null;
+  title: string | null;
+  last_question: string | null;
+  last_answer_summary: string | null;
+  last_consulted_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ConsultationMessageRow = {
+  id: string;
+  session_id: string;
+  user_id: string;
+  account_id: string;
+  role: "user" | "assistant";
+  content: string;
+  template_key: string | null;
+  answer_summary: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type SavedConsultationCardRow = {
+  id: string;
+  session_id: string;
+  message_id: string;
+  user_id: string;
+  account_id: string;
+  title: string | null;
+  answer_summary: string | null;
+  related_category_id: string | null;
+  created_at: string;
+};

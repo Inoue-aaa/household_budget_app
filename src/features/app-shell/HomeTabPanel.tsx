@@ -24,11 +24,7 @@ function getHomeNotice(code?: string) {
   };
 }
 
-const CATEGORY_ROW_ACCENTS = [
-  "#6f9cf0",
-  "#8bc7a6",
-  "#d49bc0",
-] as const;
+const CATEGORY_ROW_ACCENTS = ["#6f9cf0", "#8bc7a6", "#d49bc0"] as const;
 
 export function HomeTabPanel({ snapshot, noticeCode }: HomeTabPanelProps) {
   const notice = getHomeNotice(noticeCode);
@@ -112,7 +108,30 @@ export function HomeTabPanel({ snapshot, noticeCode }: HomeTabPanelProps) {
         </div>
       </SectionCard>
 
-      <Link className="surface section-card section-card-link home-quick-action" href="/home/budget">
+      <Link
+        className="surface section-card section-card-link home-quick-action"
+        href="/expenses/ai"
+      >
+        <div className="section-card-link-header">
+          <div className="home-quick-action-title">
+            <span className="home-quick-action-icon" aria-hidden="true">
+              <MessageSquareText size={17} />
+            </span>
+            <h2 className="section-title">AI相談</h2>
+          </div>
+          <span className="section-card-link-arrow" aria-hidden="true">
+            ›
+          </span>
+        </div>
+        <p className="section-copy">
+          指定期間の集計データをもとに、支出の傾向や見直しポイントを相談できます。
+        </p>
+      </Link>
+
+      <Link
+        className="surface section-card section-card-link home-quick-action"
+        href="/home/budget"
+      >
         <div className="section-card-link-header">
           <div className="home-quick-action-title">
             <span className="home-quick-action-icon" aria-hidden="true">
@@ -127,24 +146,7 @@ export function HomeTabPanel({ snapshot, noticeCode }: HomeTabPanelProps) {
         <p className="section-copy">
           {snapshot.budget.hasBudget
             ? "今月の予算額と対象カテゴリを見直せます。固定費を予算対象から外したいときにも使えます。"
-            : "今月の予算額と対象カテゴリを設定できます。変動費だけを対象にしたいときに使えます。"}
-        </p>
-      </Link>
-
-      <Link className="surface section-card section-card-link home-quick-action" href="/expenses/ai">
-        <div className="section-card-link-header">
-          <div className="home-quick-action-title">
-            <span className="home-quick-action-icon" aria-hidden="true">
-              <MessageSquareText size={17} />
-            </span>
-            <h2 className="section-title">AI相談</h2>
-          </div>
-          <span className="section-card-link-arrow" aria-hidden="true">
-            ›
-          </span>
-        </div>
-        <p className="section-copy">
-          指定期間の集計データをもとに、支出の傾向や見直しポイントを相談できます。
+            : "今月の予算額と対象カテゴリを設定できます。まずは変動費だけを対象にすると始めやすいです。"}
         </p>
       </Link>
     </div>
