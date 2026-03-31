@@ -48,7 +48,10 @@ export default async function PendingImportsPage({
               レシートやクレジット明細の取り込みを始めると、ここから途中再開できます。
             </p>
             <div style={{ height: 14 }} />
-            <Link className="button action-button action-button-primary" href="/register">
+            <Link
+              className="button action-button action-button-primary"
+              href="/register"
+            >
               登録方法を見る
             </Link>
           </div>
@@ -70,7 +73,7 @@ export default async function PendingImportsPage({
                     <p className="expense-group-label">確認待ちのデータ</p>
                     <p className="list-title">{group.representativeLabel}</p>
                     <p className="list-meta">
-                      draft 件数: {group.draftCount}件
+                      件数: {group.draftCount}件
                       {group.occurredOn
                         ? ` ・ 利用日: ${formatDisplayDate(group.occurredOn)}`
                         : ""}
