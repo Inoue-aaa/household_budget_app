@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MessageSquareText } from "lucide-react";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { SectionCard } from "@/components/SectionCard";
 import { BudgetProgressCard } from "@/features/monthly-budget/BudgetProgressCard";
@@ -100,6 +101,23 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           {snapshot.budget.hasBudget
             ? "今月の予算額と対象カテゴリを見直せます。固定費を予算対象から外したいときにも使えます。"
             : "今月の予算額と対象カテゴリを設定します。まずは変動費だけを選んで始められます。"}
+        </p>
+      </Link>
+
+      <Link className="surface section-card section-card-link home-quick-action" href="/expenses/ai">
+        <div className="section-card-link-header">
+          <div className="home-quick-action-title">
+            <span className="home-quick-action-icon" aria-hidden="true">
+              <MessageSquareText size={17} />
+            </span>
+            <h2 className="section-title">AI相談</h2>
+          </div>
+          <span className="section-card-link-arrow" aria-hidden="true">
+            ›
+          </span>
+        </div>
+        <p className="section-copy">
+          指定期間の集計データをもとに、支出の傾向や見直しポイントを相談できます。
         </p>
       </Link>
     </div>

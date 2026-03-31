@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { getMonthlySummarySnapshot } from "@/lib/finance/queries";
@@ -110,6 +111,7 @@ export default async function MonthlySummaryPage({
         </div>
 
         {hasBudget ? (
+          <>
           <div className="budget-progress-shell" aria-label="月次予算の進捗">
             <div
               className={`budget-progress ${
@@ -132,6 +134,15 @@ export default async function MonthlySummaryPage({
               />
             ) : null}
           </div>
+
+          <Link
+            className="list-row list-row-link budget-hero-detail-row"
+            href={`/home/budget/detail?month=${snapshot.targetMonth.slice(0, 7)}`}
+          >
+            <span className="list-title">予算内訳</span>
+            <strong aria-hidden="true">›</strong>
+          </Link>
+          </>
         ) : null}
       </section>
 
@@ -190,12 +201,10 @@ export default async function MonthlySummaryPage({
       </SectionCard>
 
       <div className="single-action-row">
-        <Link
+        <BackButton
           className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-          href="/expenses"
-        >
-          back
-        </Link>
+          fallbackHref="/expenses"
+        />
       </div>
     </div>
   );

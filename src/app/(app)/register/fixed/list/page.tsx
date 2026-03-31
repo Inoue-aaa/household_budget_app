@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -116,9 +117,7 @@ export default async function FixedExpenseListPage({
                   <div className="expense-card-header">
                     <div>
                       <p className="list-title">{item.name}</p>
-                      <p className="list-meta">
-                        {item.categoryName} ・ 毎月{item.scheduleDay}日 {item.scheduleTime}
-                      </p>
+                      <p className="list-meta">{item.categoryName} ・ 毎月{item.scheduleDay}日</p>
                     </div>
                     <strong className="expense-amount">{formatCurrency(item.amount)}</strong>
                   </div>
@@ -184,12 +183,10 @@ export default async function FixedExpenseListPage({
       </SectionCard>
 
       <div className="single-action-row">
-        <Link
+        <BackButton
           className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-          href="/register"
-        >
-          back
-        </Link>
+          fallbackHref="/register"
+        />
       </div>
     </div>
   );

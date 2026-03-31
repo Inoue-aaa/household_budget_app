@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
+import { BackButton } from "@/components/BackButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { ExpenseDeleteForm } from "@/features/expenses/ExpenseDeleteForm";
@@ -183,12 +184,10 @@ export default async function CategoryBreakdownPage({
       ) : null}
 
       <div className="single-action-row">
-        <Link
+        <BackButton
           className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-          href="/home"
-        >
-          back
-        </Link>
+          fallbackHref="/home"
+        />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 import { notFound } from "next/navigation";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -52,12 +52,10 @@ export default async function FixedExpenseEditPage({ params }: FixedExpenseEditP
       </SectionCard>
 
       <div className="single-action-row">
-        <Link
+        <BackButton
           className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-          href="/register/fixed/list"
-        >
-          back
-        </Link>
+          fallbackHref="/register/fixed/list"
+        />
       </div>
     </div>
   );

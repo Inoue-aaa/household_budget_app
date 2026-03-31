@@ -4,7 +4,7 @@ export function formatCurrency(value: number) {
   return new Intl.NumberFormat("ja-JP", {
     style: "currency",
     currency: "JPY",
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
@@ -12,7 +12,7 @@ export function formatDisplayDate(value: string) {
   return new Intl.DateTimeFormat("ja-JP", {
     year: "numeric",
     month: "numeric",
-    day: "numeric"
+    day: "numeric",
   }).format(new Date(value));
 }
 
@@ -22,7 +22,7 @@ export function formatDateTime(value: string) {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   }).format(new Date(value));
 }
 
@@ -31,11 +31,15 @@ export function formatMonthLabel(value: string | Date) {
 
   return new Intl.DateTimeFormat("ja-JP", {
     year: "numeric",
-    month: "long"
+    month: "long",
   }).format(date);
 }
 
-export function formatSourceLabel(value: SourceType) {
+export function formatSourceLabel(value: SourceType, recurringExpenseId?: string | null) {
+  if (recurringExpenseId) {
+    return "固定費";
+  }
+
   switch (value) {
     case "manual":
       return "手入力";
@@ -48,7 +52,11 @@ export function formatSourceLabel(value: SourceType) {
   }
 }
 
-export function formatImportGroupHeading(value: SourceType) {
+export function formatImportGroupHeading(value: SourceType, recurringExpenseId?: string | null) {
+  if (recurringExpenseId) {
+    return "固定費から追加した支出";
+  }
+
   switch (value) {
     case "manual":
       return "手入力で登録した支出";
@@ -57,7 +65,7 @@ export function formatImportGroupHeading(value: SourceType) {
     case "credit_screenshot":
       return "クレジット明細から登録した支出";
     default:
-      return "取り込み単位の支出";
+      return "取り込み済みの支出";
   }
 }
 
@@ -69,7 +77,11 @@ export function formatImportGroupDeleteConfirmation() {
   return "この取り込みに含まれる支出をまとめて削除しますか？";
 }
 
-export function formatImportGroupMetaLabel(value: SourceType) {
+export function formatImportGroupMetaLabel(value: SourceType, recurringExpenseId?: string | null) {
+  if (recurringExpenseId) {
+    return "登録方法";
+  }
+
   switch (value) {
     case "manual":
       return "登録方法";

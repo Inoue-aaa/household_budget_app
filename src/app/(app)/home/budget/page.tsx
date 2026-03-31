@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { BudgetSettingsForm } from "@/features/monthly-budget/BudgetSettingsForm";
@@ -27,12 +27,10 @@ export default async function HomeBudgetPage() {
       </SectionCard>
 
       <div className="single-action-row">
-        <Link
+        <BackButton
           className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-          href="/app?tab=home"
-        >
-          back
-        </Link>
+          fallbackHref="/app?tab=home"
+        />
       </div>
     </div>
   );

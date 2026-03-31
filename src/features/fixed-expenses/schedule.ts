@@ -35,6 +35,15 @@ function formatDateOnly(year: number, month: number, day: number) {
   return `${year}-${pad(month)}-${pad(day)}`;
 }
 
+function formatDateFromJst(date: Date) {
+  const jstDate = toJstDate(date);
+  return formatDateOnly(
+    jstDate.getUTCFullYear(),
+    jstDate.getUTCMonth() + 1,
+    jstDate.getUTCDate(),
+  );
+}
+
 function addMonths(year: number, month: number, diff: number) {
   const date = new Date(Date.UTC(year, month - 1 + diff, 1));
   return {
@@ -96,6 +105,47 @@ export function getCurrentMonthOccurrence(recurringExpense: ScheduleShape, refer
   const year = currentJst.getUTCFullYear();
   const month = currentJst.getUTCMonth() + 1;
   return buildScheduledOccurrence(recurringExpense, year, month);
+}
+
+export function getUpcomingOccurrenceWithinDays(
+  recurringExpense: ScheduleShape,
+  days = 7,
+  reference = new Date(),
+) {
+  const currentJst = toJstDate(reference);
+  const currentYear = currentJst.getUTCFullYear();
+  const currentMonth = currentJst.getUTCMonth() + 1;
+  const startDate = formatDateFromJst(reference);
+  const pastStartDate = formatDateFromJst(
+    new Date(reference.getTime() - days * 24 * 60 * 60 * 1000),
+  );
+  const endDate = formatDateFromJst(new Date(reference.getTime() + days * 24 * 60 * 60 * 1000));
+  const currentMonthStart = formatDateOnly(currentYear, currentMonth, 1);
+
+  const currentOccurrence = buildScheduledOccurrence(recurringExpense, currentYear, currentMonth);
+  if (
+    isOccurrenceWithinRange(recurringExpense, currentOccurrence.occurredOn) &&
+    currentOccurrence.occurredOn >= (pastStartDate > currentMonthStart ? pastStartDate : currentMonthStart) &&
+    currentOccurrence.occurredOn <= endDate
+  ) {
+    return currentOccurrence;
+  }
+
+  const nextMonthParts = addMonths(currentYear, currentMonth, 1);
+  const nextOccurrence = buildScheduledOccurrence(
+    recurringExpense,
+    nextMonthParts.year,
+    nextMonthParts.month,
+  );
+  if (
+    isOccurrenceWithinRange(recurringExpense, nextOccurrence.occurredOn) &&
+    nextOccurrence.occurredOn >= startDate &&
+    nextOccurrence.occurredOn <= endDate
+  ) {
+    return nextOccurrence;
+  }
+
+  return null;
 }
 
 export function isOccurrenceWithinRange(recurringExpense: ScheduleShape, occurredOn: string) {

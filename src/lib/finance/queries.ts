@@ -11,6 +11,13 @@ import type {
   MonthlyBudgetRow,
 } from "@/lib/finance/db-types";
 import type {
+  AnalysisBudgetComparison,
+  AnalysisCategoryTotalItem,
+  AnalysisPeriodComparison,
+  AnalysisSnapshot,
+  AnalysisTopExpenseItem,
+  AnalysisTopMerchantItem,
+  AnalysisTrendItem,
   BudgetCategoryAllocation,
   BudgetDetailCategoryItem,
   BudgetTemplateSnapshot,
@@ -42,8 +49,8 @@ import type {
   ReportMonthOption
 } from "@/lib/finance/types";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { formatMonthLabel, monthDateRange, monthStartDateString } from "@/lib/utils/format";
-import { getCurrentMonthOccurrence, isOccurrenceWithinRange } from "@/features/fixed-expenses/schedule";
+import { formatDisplayDate, formatMonthLabel, monthDateRange, monthStartDateString } from "@/lib/utils/format";
+import { getUpcomingOccurrenceWithinDays } from "@/features/fixed-expenses/schedule";
 
 function createFallbackAccountSnapshot(): CurrentAccountSnapshot {
   return {
@@ -86,10 +93,11 @@ function mapExpenseRows(
     | "amount"
     | "occurred_on"
     | "merchant_name"
-    | "note"
-    | "import_group_id"
-    | "category_id"
-    | "source_type"
+      | "note"
+      | "import_group_id"
+      | "recurring_expense_id"
+      | "category_id"
+      | "source_type"
   >[],
   categoryMap: Map<string, string>
 ): ExpenseListItem[] {
@@ -101,6 +109,7 @@ function mapExpenseRows(
     merchantName: expense.merchant_name,
     note: expense.note,
     importGroupId: expense.import_group_id,
+    recurringExpenseId: expense.recurring_expense_id,
     categoryId: expense.category_id,
     categoryName: categoryMap.get(expense.category_id) ?? "未設定カテゴリ",
     sourceType: expense.source_type
@@ -416,6 +425,146 @@ function createEmptyMonthlySummarySnapshot(
     variableAmount: 0,
     topCategories: [],
     availableMonths: [{ value: targetMonth, label: formatMonthLabel(`${targetMonth}-01`) }]
+  };
+}
+
+function isIsoDateString(value?: string | null): value is string {
+  return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function parseUtcDate(dateString: string) {
+  return new Date(`${dateString}T00:00:00Z`);
+}
+
+function formatUtcDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftDateString(dateString: string, days: number) {
+  const date = parseUtcDate(dateString);
+  date.setUTCDate(date.getUTCDate() + days);
+  return formatUtcDate(date);
+}
+
+function diffDaysInclusive(startDate: string, endDate: string) {
+  const start = parseUtcDate(startDate);
+  const end = parseUtcDate(endDate);
+  return Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
+}
+
+function formatAnalysisPeriodLabel(startDate: string, endDate: string) {
+  return `${formatDisplayDate(startDate)} 〜 ${formatDisplayDate(endDate)}`;
+}
+
+function resolveAnalysisDateRange(startDate?: string, endDate?: string) {
+  if (isIsoDateString(startDate) && isIsoDateString(endDate)) {
+    if (startDate <= endDate) {
+      return { startDate, endDate };
+    }
+
+    return { startDate: endDate, endDate: startDate };
+  }
+
+  const currentMonth = monthDateRange(new Date());
+  return {
+    startDate: currentMonth.start,
+    endDate: currentMonth.end,
+  };
+}
+
+function buildMonthKeysBetween(startDate: string, endDate: string) {
+  const start = parseUtcDate(startDate);
+  const end = parseUtcDate(endDate);
+  const months: string[] = [];
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+  const endCursor = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+
+  while (cursor <= endCursor) {
+    months.push(formatUtcDate(cursor));
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  return months;
+}
+
+function buildAnalysisTrend(
+  startDate: string,
+  endDate: string,
+  rows: Pick<ExpenseRow, "occurred_on" | "amount">[],
+): AnalysisTrendItem[] {
+  const totalDays = diffDaysInclusive(startDate, endDate);
+
+  if (totalDays <= 62) {
+    const totals = new Map<string, number>();
+    for (const row of rows) {
+      totals.set(row.occurred_on, (totals.get(row.occurred_on) ?? 0) + row.amount);
+    }
+
+    const items: AnalysisTrendItem[] = [];
+    let cursor = startDate;
+    while (cursor <= endDate) {
+      items.push({
+        bucket: cursor,
+        label: formatDisplayDate(cursor),
+        totalAmount: totals.get(cursor) ?? 0,
+        granularity: "day",
+      });
+      cursor = shiftDateString(cursor, 1);
+    }
+
+    return items;
+  }
+
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const monthKey = `${row.occurred_on.slice(0, 7)}-01`;
+    totals.set(monthKey, (totals.get(monthKey) ?? 0) + row.amount);
+  }
+
+  return buildMonthKeysBetween(startDate, endDate).map((monthKey) => ({
+    bucket: monthKey.slice(0, 7),
+    label: formatMonthLabel(monthKey),
+    totalAmount: totals.get(monthKey) ?? 0,
+    granularity: "month",
+  }));
+}
+
+function createEmptyAnalysisSnapshot(
+  startDate: string,
+  endDate: string,
+  account: CurrentAccountSnapshot,
+): AnalysisSnapshot {
+  const previousEndDate = shiftDateString(startDate, -1);
+  const previousStartDate = shiftDateString(startDate, -diffDaysInclusive(startDate, endDate));
+
+  return {
+    account,
+    period: {
+      startDate,
+      endDate,
+      label: formatAnalysisPeriodLabel(startDate, endDate),
+    },
+    totalAmount: 0,
+    fixedAmount: 0,
+    variableAmount: 0,
+    categoryTotals: [],
+    trend: buildAnalysisTrend(startDate, endDate, []),
+    previousPeriodComparison: {
+      previousStartDate,
+      previousEndDate,
+      previousTotalAmount: 0,
+      differenceAmount: 0,
+      changeRate: null,
+    },
+    budgetComparison: {
+      totalBudgetAmount: null,
+      differenceFromBudget: null,
+      usageRate: null,
+    },
+    topExpenses: [],
+    topMerchants: [],
+    overBudgetCategories: [],
+    increasedCategories: [],
   };
 }
 
@@ -768,7 +917,7 @@ export async function listRecentExpenses(limit = 12): Promise<ExpenseListItem[]>
     const { data, error } = await supabase
       .from("expenses")
       .select(
-        "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
+        "id, title, amount, occurred_on, merchant_name, note, import_group_id, recurring_expense_id, category_id, source_type"
       )
       .eq("account_id", accountContext.currentAccount.id)
       .order("occurred_on", { ascending: false })
@@ -806,7 +955,7 @@ export async function getExpensesPageSnapshot(limit = 50): Promise<ExpensesPageS
     const { data: recentRows, error: recentError } = await supabase
       .from("expenses")
       .select(
-        "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
+        "id, title, amount, occurred_on, merchant_name, note, import_group_id, recurring_expense_id, category_id, source_type"
       )
       .eq("account_id", accountContext.currentAccount.id)
       .order("occurred_on", { ascending: false })
@@ -839,6 +988,7 @@ export async function getExpensesPageSnapshot(limit = 50): Promise<ExpensesPageS
       groupMap.set(item.importGroupId, {
         importGroupId: item.importGroupId,
         sourceType: item.sourceType,
+        recurringExpenseId: item.recurringExpenseId,
         occurredOn: item.occurredOn,
         merchantName: item.merchantName ?? item.title,
         itemCount: 1,
@@ -1014,6 +1164,211 @@ export async function getMonthlySummarySnapshot(month?: string): Promise<Monthly
     };
   } catch {
     return createEmptyMonthlySummarySnapshot(resolveMonthDate(month), createFallbackAccountSnapshot());
+  }
+}
+
+type AnalysisSnapshotOptions = {
+  startDate?: string;
+  endDate?: string;
+};
+
+export async function getAnalysisSnapshot(
+  options: AnalysisSnapshotOptions = {},
+): Promise<AnalysisSnapshot> {
+  const { startDate, endDate } = resolveAnalysisDateRange(options.startDate, options.endDate);
+
+  try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return createEmptyAnalysisSnapshot(startDate, endDate, createFallbackAccountSnapshot());
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const categories = await listCategories();
+    const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
+    const periodDays = diffDaysInclusive(startDate, endDate);
+    const previousEndDate = shiftDateString(startDate, -1);
+    const previousStartDate = shiftDateString(startDate, -periodDays);
+    const budgetMonths = buildMonthKeysBetween(startDate, endDate);
+
+    const [currentResult, previousResult, monthlyBudgetRows] = await Promise.all([
+      supabase
+        .from("expenses")
+        .select("id, title, amount, occurred_on, merchant_name, category_id, recurring_expense_id")
+        .eq("account_id", accountContext.currentAccount.id)
+        .gte("occurred_on", startDate)
+        .lte("occurred_on", endDate)
+        .order("occurred_on", { ascending: true })
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("expenses")
+        .select("amount, category_id")
+        .eq("account_id", accountContext.currentAccount.id)
+        .gte("occurred_on", previousStartDate)
+        .lte("occurred_on", previousEndDate),
+      Promise.all(
+        budgetMonths.map((targetMonth) =>
+          getMonthlyBudgetRows(supabase, accountContext, targetMonth),
+        ),
+      ),
+    ]);
+
+    if (currentResult.error || previousResult.error) {
+      return createEmptyAnalysisSnapshot(startDate, endDate, accountContext);
+    }
+
+    const currentRows = currentResult.data ?? [];
+    const previousRows = previousResult.data ?? [];
+    const totalAmount = currentRows.reduce((sum, row) => sum + row.amount, 0);
+    const previousTotalAmount = previousRows.reduce((sum, row) => sum + row.amount, 0);
+    const fixedAmount = currentRows
+      .filter((row) => row.recurring_expense_id != null)
+      .reduce((sum, row) => sum + row.amount, 0);
+    const variableAmount = totalAmount - fixedAmount;
+
+    const previousCategoryMap = new Map<string, number>();
+    for (const row of previousRows) {
+      previousCategoryMap.set(row.category_id, (previousCategoryMap.get(row.category_id) ?? 0) + row.amount);
+    }
+
+    let totalBudgetAmount: number | null = 0;
+    const categoryBudgetMap = new Map<string, number>();
+    for (const monthRows of monthlyBudgetRows) {
+      if (!monthRows.budget) {
+        continue;
+      }
+
+      totalBudgetAmount = (totalBudgetAmount ?? 0) + monthRows.budget.budget_amount;
+      for (const row of monthRows.categories) {
+        categoryBudgetMap.set(row.category_id, (categoryBudgetMap.get(row.category_id) ?? 0) + row.budget_amount);
+      }
+    }
+
+    if (totalBudgetAmount === 0) {
+      totalBudgetAmount = null;
+    }
+
+    const categoryTotalsMap = new Map<string, AnalysisCategoryTotalItem>();
+    for (const row of currentRows) {
+      const categoryId = row.category_id;
+      const current = categoryTotalsMap.get(categoryId) ?? {
+        categoryId,
+        categoryName: categoryMap.get(categoryId) ?? "未設定カテゴリ",
+        totalAmount: 0,
+        shareRate: 0,
+        differenceFromPreviousPeriod: null,
+        budgetAmount: categoryBudgetMap.get(categoryId) ?? null,
+        differenceFromBudget: null,
+        usageRate: null,
+        isOverBudget: false,
+      };
+
+      current.totalAmount += row.amount;
+      categoryTotalsMap.set(categoryId, current);
+    }
+
+    const categoryTotals = Array.from(categoryTotalsMap.values())
+      .map((item) => {
+        const previousAmount = previousCategoryMap.get(item.categoryId) ?? 0;
+        const budgetAmount = item.budgetAmount;
+        const differenceFromBudget =
+          budgetAmount != null ? budgetAmount - item.totalAmount : null;
+        const usageRate = budgetAmount && budgetAmount > 0 ? item.totalAmount / budgetAmount : null;
+
+        return {
+          ...item,
+          shareRate: totalAmount > 0 ? item.totalAmount / totalAmount : 0,
+          differenceFromPreviousPeriod: item.totalAmount - previousAmount,
+          budgetAmount,
+          differenceFromBudget,
+          usageRate,
+          isOverBudget: budgetAmount != null && budgetAmount > 0 && item.totalAmount > budgetAmount,
+        };
+      })
+      .sort((left, right) => right.totalAmount - left.totalAmount);
+
+    const topExpenses: AnalysisTopExpenseItem[] = currentRows
+      .slice()
+      .sort((left, right) => right.amount - left.amount)
+      .slice(0, 5)
+      .map((row) => ({
+        expenseId: row.id,
+        title: row.title,
+        amount: row.amount,
+        occurredOn: row.occurred_on,
+        merchantName: row.merchant_name,
+        categoryName: categoryMap.get(row.category_id) ?? "未設定カテゴリ",
+        recurringExpenseId: row.recurring_expense_id,
+      }));
+
+    const merchantMap = new Map<string, AnalysisTopMerchantItem>();
+    for (const row of currentRows) {
+      const merchantName = row.merchant_name?.trim();
+      if (!merchantName) {
+        continue;
+      }
+
+      const current = merchantMap.get(merchantName) ?? {
+        merchantName,
+        totalAmount: 0,
+        count: 0,
+      };
+      current.totalAmount += row.amount;
+      current.count += 1;
+      merchantMap.set(merchantName, current);
+    }
+
+    const topMerchants = Array.from(merchantMap.values())
+      .sort((left, right) => {
+        if (left.totalAmount === right.totalAmount) {
+          return right.count - left.count;
+        }
+        return right.totalAmount - left.totalAmount;
+      })
+      .slice(0, 5);
+
+    const budgetComparison: AnalysisBudgetComparison = {
+      totalBudgetAmount,
+      differenceFromBudget: totalBudgetAmount != null ? totalBudgetAmount - totalAmount : null,
+      usageRate: totalBudgetAmount && totalBudgetAmount > 0 ? totalAmount / totalBudgetAmount : null,
+    };
+
+    const previousPeriodComparison: AnalysisPeriodComparison = {
+      previousStartDate,
+      previousEndDate,
+      previousTotalAmount,
+      differenceAmount: totalAmount - previousTotalAmount,
+      changeRate: previousTotalAmount > 0 ? (totalAmount - previousTotalAmount) / previousTotalAmount : null,
+    };
+
+    return {
+      account: accountContext,
+      period: {
+        startDate,
+        endDate,
+        label: formatAnalysisPeriodLabel(startDate, endDate),
+      },
+      totalAmount,
+      fixedAmount,
+      variableAmount,
+      categoryTotals,
+      trend: buildAnalysisTrend(startDate, endDate, currentRows),
+      previousPeriodComparison,
+      budgetComparison,
+      topExpenses,
+      topMerchants,
+      overBudgetCategories: categoryTotals.filter((item) => item.isOverBudget).slice(0, 5),
+      increasedCategories: categoryTotals
+        .filter((item) => (item.differenceFromPreviousPeriod ?? 0) > 0)
+        .sort(
+          (left, right) =>
+            (right.differenceFromPreviousPeriod ?? 0) - (left.differenceFromPreviousPeriod ?? 0),
+        )
+        .slice(0, 5),
+    };
+  } catch {
+    return createEmptyAnalysisSnapshot(startDate, endDate, createFallbackAccountSnapshot());
   }
 }
 
@@ -1223,7 +1578,7 @@ export async function getCategoryBreakdownSnapshot(
       const { data: selectedRows, error: selectedError } = await supabase
         .from("expenses")
         .select(
-          "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
+          "id, title, amount, occurred_on, merchant_name, note, import_group_id, recurring_expense_id, category_id, source_type"
         )
         .eq("account_id", accountContext.currentAccount.id)
         .eq("category_id", selectedCategoryId)
@@ -1307,7 +1662,7 @@ export async function getDailyExpensesSnapshot(date: string): Promise<DailyExpen
     const { data, error } = await supabase
       .from("expenses")
       .select(
-        "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
+        "id, title, amount, occurred_on, merchant_name, note, import_group_id, recurring_expense_id, category_id, source_type"
       )
       .eq("account_id", accountContext.currentAccount.id)
       .eq("occurred_on", date)
@@ -1370,7 +1725,7 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
 
     const supabase = await createServerSupabaseClient();
     const currentMonth = new Date();
-    const { start, end } = monthDateRange(currentMonth);
+    const { start } = monthDateRange(currentMonth);
 
     const [
       { data: groups, error: groupsError },
@@ -1401,10 +1756,15 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
           .order("created_at", { ascending: true }),
         supabase
           .from("expenses")
-          .select("recurring_expense_id")
+          .select("recurring_expense_id, occurred_on")
           .eq("account_id", accountContext.currentAccount.id)
           .gte("occurred_on", start)
-          .lte("occurred_on", end)
+          .lte(
+            "occurred_on",
+            new Date(Date.UTC(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0))
+              .toISOString()
+              .slice(0, 10),
+          )
           .not("recurring_expense_id", "is", null),
         listCategories(),
       ]);
@@ -1420,18 +1780,27 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
 
     const pendingGroups = buildPendingImportGroups(groups ?? [], drafts ?? []);
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
-    const existingRecurringIds = new Set(
+    const existingRecurringKeys = new Set(
       (existingRecurringRows ?? [])
-        .map((row) => row.recurring_expense_id)
-        .filter((value): value is string => typeof value === "string"),
+        .filter(
+          (
+            row,
+          ): row is {
+            recurring_expense_id: string;
+            occurred_on: string;
+          } =>
+            typeof row.recurring_expense_id === "string" &&
+            typeof row.occurred_on === "string",
+        )
+        .map((row) => `${row.recurring_expense_id}:${row.occurred_on.slice(0, 7)}`),
     );
     const recurringExpenseCandidates: RecurringExpenseCandidateItem[] =
       recurringExpensesError || existingRecurringRowsError || !recurringExpenseRows
         ? []
         : recurringExpenseRows
             .map((item) => {
-              const occurrence = getCurrentMonthOccurrence(item);
-              if (!isOccurrenceWithinRange(item, occurrence.occurredOn)) {
+              const occurrence = getUpcomingOccurrenceWithinDays(item, 7);
+              if (!occurrence) {
                 return null;
               }
 
@@ -1445,7 +1814,7 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
                 scheduleTime: item.schedule_time.slice(0, 5),
                 occurredOn: occurrence.occurredOn,
                 memo: item.memo,
-                isAlreadyAdded: existingRecurringIds.has(item.id),
+                isAlreadyAdded: existingRecurringKeys.has(`${item.id}:${occurrence.occurredOn.slice(0, 7)}`),
               };
             })
             .filter((item): item is RecurringExpenseCandidateItem => item != null);
@@ -1564,7 +1933,7 @@ export async function getDashboardSnapshot(date = new Date()): Promise<Dashboard
       supabase
         .from("expenses")
         .select(
-          "id, title, amount, occurred_on, merchant_name, note, import_group_id, category_id, source_type"
+          "id, title, amount, occurred_on, merchant_name, note, import_group_id, recurring_expense_id, category_id, source_type"
         )
         .eq("account_id", accountContext.currentAccount.id)
         .gte("occurred_on", start)

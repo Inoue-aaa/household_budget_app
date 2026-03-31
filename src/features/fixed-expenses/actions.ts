@@ -281,6 +281,7 @@ const deleteRecurringExpenseSchema = z.object({
 
 const addRecurringExpenseCandidateSchema = z.object({
   recurringExpenseId: z.string().uuid(),
+  occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 export async function deleteRecurringExpenseAction(formData: FormData) {
@@ -314,6 +315,7 @@ export async function deleteRecurringExpenseAction(formData: FormData) {
 export async function addRecurringExpenseCandidateAction(formData: FormData) {
   const parsed = addRecurringExpenseCandidateSchema.safeParse({
     recurringExpenseId: formData.get("recurringExpenseId"),
+    occurredOn: formData.get("occurredOn"),
   });
 
   if (!parsed.success) {
@@ -340,17 +342,8 @@ export async function addRecurringExpenseCandidateAction(formData: FormData) {
     redirect(registerPath("fixed-expense-add-error"));
   }
 
-  const now = new Date();
-  const monthPrefix = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
-    .toISOString()
-    .slice(0, 7);
-  const { start, end } = monthDateRange(new Date(`${monthPrefix}-01T00:00:00`));
-  const occurredOn = `${monthPrefix}-${String(
-    Math.min(
-      recurringExpense.schedule_day,
-      new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
-    ),
-  ).padStart(2, "0")}`;
+  const occurredOn = parsed.data.occurredOn;
+  const { start, end } = monthDateRange(new Date(`${occurredOn}T00:00:00`));
 
   if (
     (recurringExpense.start_date && occurredOn < recurringExpense.start_date) ||

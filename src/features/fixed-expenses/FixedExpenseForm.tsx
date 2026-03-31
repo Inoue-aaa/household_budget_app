@@ -50,7 +50,7 @@ export function FixedExpenseForm({
   initialValues,
   submitLabel = "保存する",
   pendingLabel = "保存中...",
-  footerMessage = "※保存後は一覧画面へ移動します。",
+  footerMessage = "※更新後は一覧画面へ移動します。",
 }: FixedExpenseFormProps) {
   const action = mode === "edit" ? updateRecurringExpenseAction : createRecurringExpenseAction;
   const [state, formAction] = useActionState(action, buildInitialState(initialValues));
@@ -95,9 +95,7 @@ export function FixedExpenseForm({
           step="1"
           type="number"
         />
-        {state.fieldErrors?.amount ? (
-          <p className="error-text">{state.fieldErrors.amount}</p>
-        ) : null}
+        {state.fieldErrors?.amount ? <p className="error-text">{state.fieldErrors.amount}</p> : null}
       </div>
 
       <div className="field">
@@ -122,45 +120,27 @@ export function FixedExpenseForm({
         ) : null}
       </div>
 
-      <div className="review-inline-grid review-inline-grid-compact">
-        <div className="field">
-          <label htmlFor="scheduleDay">
-            反映日 <RequiredMark />
-          </label>
-          <select
-            aria-invalid={Boolean(state.fieldErrors?.scheduleDay)}
-            defaultValue={values.scheduleDay}
-            id="scheduleDay"
-            name="scheduleDay"
-            required
-          >
-            {scheduleDayOptions.map((day) => (
-              <option key={day} value={day}>
-                {day}日
-              </option>
-            ))}
-          </select>
-          {state.fieldErrors?.scheduleDay ? (
-            <p className="error-text">{state.fieldErrors.scheduleDay}</p>
-          ) : null}
-        </div>
-
-        <div className="field">
-          <label htmlFor="scheduleTime">
-            反映時刻 <RequiredMark />
-          </label>
-          <input
-            aria-invalid={Boolean(state.fieldErrors?.scheduleTime)}
-            defaultValue={values.scheduleTime || "09:00"}
-            id="scheduleTime"
-            name="scheduleTime"
-            required
-            type="time"
-          />
-          {state.fieldErrors?.scheduleTime ? (
-            <p className="error-text">{state.fieldErrors.scheduleTime}</p>
-          ) : null}
-        </div>
+      <div className="field">
+        <label htmlFor="scheduleDay">
+          反映日 <RequiredMark />
+        </label>
+        <select
+          aria-invalid={Boolean(state.fieldErrors?.scheduleDay)}
+          defaultValue={values.scheduleDay}
+          id="scheduleDay"
+          name="scheduleDay"
+          required
+        >
+          {scheduleDayOptions.map((day) => (
+            <option key={day} value={day}>
+              {day}日
+            </option>
+          ))}
+        </select>
+        <input name="scheduleTime" type="hidden" value={values.scheduleTime || "09:00"} />
+        {state.fieldErrors?.scheduleDay ? (
+          <p className="error-text">{state.fieldErrors.scheduleDay}</p>
+        ) : null}
       </div>
 
       <p className="field-hint">
@@ -169,13 +149,7 @@ export function FixedExpenseForm({
 
       <div className="field">
         <label htmlFor="memo">メモ</label>
-        <textarea
-          defaultValue={values.memo}
-          id="memo"
-          maxLength={300}
-          name="memo"
-          placeholder="任意"
-        />
+        <textarea defaultValue={values.memo} id="memo" maxLength={300} name="memo" placeholder="任意" />
       </div>
 
       <div className="field">

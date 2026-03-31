@@ -160,6 +160,79 @@ export type MonthlySummarySnapshot = {
   availableMonths: ReportMonthOption[];
 };
 
+export type AnalysisPeriod = {
+  startDate: string;
+  endDate: string;
+  label: string;
+};
+
+export type AnalysisTrendGranularity = "day" | "month";
+
+export type AnalysisTrendItem = {
+  bucket: string;
+  label: string;
+  totalAmount: number;
+  granularity: AnalysisTrendGranularity;
+};
+
+export type AnalysisPeriodComparison = {
+  previousStartDate: string;
+  previousEndDate: string;
+  previousTotalAmount: number;
+  differenceAmount: number;
+  changeRate: number | null;
+};
+
+export type AnalysisBudgetComparison = {
+  totalBudgetAmount: number | null;
+  differenceFromBudget: number | null;
+  usageRate: number | null;
+};
+
+export type AnalysisCategoryTotalItem = {
+  categoryId: string;
+  categoryName: string;
+  totalAmount: number;
+  shareRate: number;
+  differenceFromPreviousPeriod: number | null;
+  budgetAmount: number | null;
+  differenceFromBudget: number | null;
+  usageRate: number | null;
+  isOverBudget: boolean;
+};
+
+export type AnalysisTopExpenseItem = {
+  expenseId: string;
+  title: string;
+  amount: number;
+  occurredOn: string;
+  merchantName: string | null;
+  categoryName: string;
+  recurringExpenseId: string | null;
+};
+
+export type AnalysisTopMerchantItem = {
+  merchantName: string;
+  totalAmount: number;
+  count: number;
+};
+
+export type AnalysisSnapshot = {
+  account: CurrentAccountSnapshot;
+  period: AnalysisPeriod;
+  totalAmount: number;
+  fixedAmount: number;
+  variableAmount: number;
+  categoryTotals: AnalysisCategoryTotalItem[];
+  trend: AnalysisTrendItem[];
+  previousPeriodComparison: AnalysisPeriodComparison;
+  budgetComparison: AnalysisBudgetComparison;
+  topExpenses: AnalysisTopExpenseItem[];
+  topMerchants: AnalysisTopMerchantItem[];
+  overBudgetCategories: AnalysisCategoryTotalItem[];
+  increasedCategories: AnalysisCategoryTotalItem[];
+};
+
 export type YearlySpendingTrendItem = {
   month: string;
   monthLabel: string;
@@ -193,6 +266,7 @@ export type DailyExpensesSnapshot = {
 export type ExpenseImportGroupSummary = {
   importGroupId: string;
   sourceType: SourceType;
+  recurringExpenseId?: string | null;
   occurredOn: string;
   merchantName: string | null;
   itemCount: number;

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -59,12 +59,10 @@ export default async function ReceiptRegisterPage({
       </SectionCard>
 
       <div className="single-action-row">
-        <Link
+        <BackButton
           className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-          href="/register"
-        >
-          back
-        </Link>
+          fallbackHref="/register"
+        />
       </div>
     </div>
   );

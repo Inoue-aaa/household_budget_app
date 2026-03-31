@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { Repeat2 } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
 import { SubmitButton } from "@/components/SubmitButton";
 import { addRecurringExpenseCandidateAction } from "@/features/fixed-expenses/actions";
 import type { RecurringExpenseCandidateItem } from "@/lib/finance/types";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency, formatDisplayDate } from "@/lib/utils/format";
 
 export function RecurringExpenseCandidatesSection({
   items,
@@ -19,15 +20,15 @@ export function RecurringExpenseCandidatesSection({
     >
       {items.length === 0 ? (
         <div className="empty-state">
-          <p className="section-title">今月の候補はありません</p>
+          <p className="section-title">今週の候補はありません</p>
           <p className="section-copy">
-            有効な固定費 / サブスクを登録すると、ここに候補として表示されます。
+            今日から1週間以内に追加する固定費 / サブスクがあると、ここに表示されます。
           </p>
         </div>
       ) : (
         <div className="list">
           {items.map((item) => (
-            <section className="expense-card recurring-candidate-card" key={item.recurringExpenseId}>
+            <section className="expense-card recurring-candidate-card" key={`${item.recurringExpenseId}:${item.occurredOn}`}>
               <div className="expense-card-main">
                 <div className="expense-card-overline">
                   <span className={`pill ${item.isAlreadyAdded ? "" : "pill-accent"}`}>
@@ -43,7 +44,7 @@ export function RecurringExpenseCandidatesSection({
                     <div>
                       <p className="list-title">{item.name}</p>
                       <p className="list-meta">
-                        {item.categoryName} ・ 毎月{item.scheduleDay}日 {item.scheduleTime}
+                        {item.categoryName} ・ {formatDisplayDate(item.occurredOn)}
                       </p>
                     </div>
                   </div>
@@ -53,12 +54,15 @@ export function RecurringExpenseCandidatesSection({
                 {item.memo ? <p className="section-copy recurring-candidate-note">{item.memo}</p> : null}
 
                 <div className="action-button-row action-button-row-centered expense-card-action-row">
+                  <Link
+                    className="button compact-button action-button action-button-secondary"
+                    href={`/register/fixed/${item.recurringExpenseId}`}
+                  >
+                    修正
+                  </Link>
                   <form action={addRecurringExpenseCandidateAction}>
-                    <input
-                      name="recurringExpenseId"
-                      type="hidden"
-                      value={item.recurringExpenseId}
-                    />
+                    <input name="recurringExpenseId" type="hidden" value={item.recurringExpenseId} />
+                    <input name="occurredOn" type="hidden" value={item.occurredOn} />
                     <SubmitButton
                       className="button compact-button action-button action-button-primary"
                       disabled={item.isAlreadyAdded}

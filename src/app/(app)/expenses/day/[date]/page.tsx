@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -89,12 +90,10 @@ export default async function DailyExpensesPage({
           description="URL の日付を見直してから、もう一度開いてください。"
         >
           <div className="single-action-row">
-            <Link
+            <BackButton
               className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-              href="/expenses/reports"
-            >
-              back
-            </Link>
+              fallbackHref="/expenses/reports"
+            />
           </div>
         </SectionCard>
       </div>
@@ -192,7 +191,7 @@ export default async function DailyExpensesPage({
                       <p className="list-meta">
                         {item.merchantName ? `${item.merchantName} ・ ` : ""}
                         {item.categoryName} ・{" "}
-                        {formatSourceLabel(item.sourceType)}
+                        {formatSourceLabel(item.sourceType, item.recurringExpenseId)}
                         {item.note ? ` ・ ${item.note}` : ""}
                       </p>
                     </div>
@@ -222,12 +221,10 @@ export default async function DailyExpensesPage({
       </SectionCard>
 
       <div className="single-action-row">
-        <Link
+        <BackButton
           className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-          href={`/expenses/reports?month=${snapshot.date.slice(0, 7)}`}
-        >
-          back
-        </Link>
+          fallbackHref={`/expenses/reports?month=${snapshot.date.slice(0, 7)}`}
+        />
       </div>
     </div>
   );

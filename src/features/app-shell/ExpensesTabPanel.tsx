@@ -39,7 +39,7 @@ export function ExpensesTabPanel({
       <ScreenHeader
         eyebrow="Expenses"
         title="支出"
-        description="登録済みの支出を確認・修正することができます"
+        description="登録済みの支出を確認・修正できます。"
       />
 
       <section className="stats-grid">
@@ -85,7 +85,7 @@ export function ExpensesTabPanel({
           </span>
         </div>
         <p className="section-copy">
-          月全体の支出、予算との差額、固定費と変動費の内訳を振り返れます。
+          月全体の支出、予算との差、固定費と変動費の傾向を確認できます。
         </p>
       </Link>
 
@@ -142,7 +142,7 @@ export function ExpensesTabPanel({
                   <div className="expense-card-main">
                     <div className="expense-card-overline">
                       <span className="pill pill-accent">
-                        {formatSourceLabel(group.sourceType)}
+                        {formatSourceLabel(group.sourceType, group.recurringExpenseId)}
                       </span>
                       <span className="expense-card-date">
                         {formatDisplayDate(group.occurredOn)}
@@ -152,14 +152,14 @@ export function ExpensesTabPanel({
                     <div className="expense-card-header">
                       <div>
                         <p className="expense-group-label">
-                          {formatImportGroupHeading(group.sourceType)}
+                          {formatImportGroupHeading(group.sourceType, group.recurringExpenseId)}
                         </p>
                         <p className="list-title">
-                          {group.merchantName ?? "名称なし"}
+                          {group.merchantName ?? "店舗名なし"}
                         </p>
                         <p className="list-meta">
-                          {formatImportGroupMetaLabel(group.sourceType)}:{" "}
-                          {formatSourceLabel(group.sourceType)}
+                          {formatImportGroupMetaLabel(group.sourceType, group.recurringExpenseId)}:{" "}
+                          {formatSourceLabel(group.sourceType, group.recurringExpenseId)}
                         </p>
                       </div>
                       <strong className="expense-amount">

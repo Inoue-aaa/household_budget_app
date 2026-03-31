@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { Pencil, ScanLine, CreditCard, AlertCircle, Repeat2 } from "lucide-react";
+import {
+  AlertCircle,
+  CreditCard,
+  Pencil,
+  Repeat2,
+  ScanLine,
+} from "lucide-react";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -31,8 +37,33 @@ export function RegisterTabPanel({
       <ScreenHeader
         eyebrow="Register"
         title="登録"
-        description="支出を登録できます。手入力や画像読み取りから保存できます。"
+        description={
+          "支出を登録できます。手入力や画像読み取りから保存できます。"
+        }
       />
+
+      {snapshot.totalCount > 0 ? (
+        <Link
+          className="surface section-card section-card-link register-warning-card"
+          href="/register/pending"
+        >
+          <div className="section-card-link-header">
+            <div className="home-quick-action-title">
+              <span className="register-warning-icon" aria-hidden="true">
+                <AlertCircle size={17} />
+              </span>
+              <h2 className="section-title">未登録データ</h2>
+            </div>
+            <span className="section-card-link-arrow" aria-hidden="true">
+              ›
+            </span>
+          </div>
+          <p className="section-copy">
+            登録が中断されたデータが{snapshot.totalCount}
+            件あります。確認画面へ戻り処理を続けることができます。
+          </p>
+        </Link>
+      ) : null}
 
       <SectionCard title="支出を登録する">
         <div className="link-grid">
@@ -55,7 +86,9 @@ export function RegisterTabPanel({
             </div>
             <div className="link-card-body">
               <strong>レシートを読み取る</strong>
-              <span>画像から下書きを作成し、確認画面で修正してから保存します。</span>
+              <span>
+                画像から下書きを作成し、確認画面で修正してから保存します。
+              </span>
             </div>
           </Link>
 
@@ -71,41 +104,24 @@ export function RegisterTabPanel({
             </div>
           </Link>
 
-          <Link className="link-card link-card-manual" href="/register/fixed/list">
+          <Link
+            className="link-card link-card-manual"
+            href="/register/fixed/list"
+          >
             <div className="link-card-icon link-card-icon-neutral">
               <Repeat2 size={19} />
             </div>
             <div className="link-card-body">
               <strong>固定費 / サブスク登録</strong>
-              <span>毎月発生する支出を登録し、反映日と時刻を設定できます。</span>
+              <span>毎月発生する支出を登録し、反映日を設定できます。</span>
             </div>
           </Link>
         </div>
       </SectionCard>
 
-      <RecurringExpenseCandidatesSection items={snapshot.recurringExpenseCandidates} />
-
-      {snapshot.totalCount > 0 ? (
-        <Link
-          className="surface section-card section-card-link register-warning-card"
-          href="/register/pending"
-        >
-          <div className="section-card-link-header">
-            <div className="home-quick-action-title">
-              <span className="register-warning-icon" aria-hidden="true">
-                <AlertCircle size={17} />
-              </span>
-              <h2 className="section-title">未登録データ</h2>
-            </div>
-            <span className="section-card-link-arrow" aria-hidden="true">
-              ›
-            </span>
-          </div>
-          <p className="section-copy">
-            登録が中断されたデータが{snapshot.totalCount}件あります。確認画面へ戻り処理を続けることができます。
-          </p>
-        </Link>
-      ) : null}
+      <RecurringExpenseCandidatesSection
+        items={snapshot.recurringExpenseCandidates}
+      />
     </div>
   );
 }
