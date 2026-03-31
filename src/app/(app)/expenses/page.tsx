@@ -14,12 +14,31 @@ import {
   formatSourceLabel,
 } from "@/lib/utils/format";
 
-export default async function ExpensesPage() {
+type ExpensesPageProps = {
+  searchParams?: Promise<{
+    created?: string;
+    deleted?: string;
+    delete_error?: string;
+  }>;
+};
+
+export default async function ExpensesPage({
+  searchParams,
+}: ExpensesPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const noticeCode =
+    params?.created === "1"
+      ? "created"
+      : params?.deleted === "1"
+        ? "deleted"
+        : params?.delete_error === "1"
+          ? "delete_error"
+          : undefined;
   const snapshot = await getExpensesPageSnapshot();
 
   return (
     <div className="page-stack">
-      <ExpensesStatusBanner />
+      <ExpensesStatusBanner code={noticeCode} />
 
       <ScreenHeader
         eyebrow="Expenses"
