@@ -43,7 +43,7 @@ export function BudgetProgressCard({ budget }: BudgetProgressCardProps) {
         <>
           <div className="budget-hero-main">
             <div>
-              <span className="budget-hero-amount-label">残り使える額</span>
+              <span className="budget-hero-amount-label">予算残高</span>
               <strong className="budget-hero-amount">
                 {formatCurrency(budget.remainingAmount ?? 0)}
               </strong>
