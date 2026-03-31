@@ -1,12 +1,19 @@
 import { getAuthenticatedAccountContext } from "@/lib/accounts/queries";
 import { INITIAL_CATEGORIES } from "@/lib/finance/categories";
 import type {
+  BudgetTemplateCategoryRow,
+  BudgetTemplateRow,
   CategoryRow,
   ExpenseDraftRow,
   ExpenseRow,
   ImportGroupRow,
+  MonthlyBudgetCategoryRow,
+  MonthlyBudgetRow,
 } from "@/lib/finance/db-types";
 import type {
+  BudgetCategoryAllocation,
+  BudgetDetailCategoryItem,
+  BudgetTemplateSnapshot,
   CategorySummaryItem,
   CategoryBreakdownSnapshot,
   CategoryOption,
@@ -22,6 +29,11 @@ import type {
   ExpenseListItem,
   ExpensesPageSnapshot,
   ExpensesReportSnapshot,
+  MonthlySummarySnapshot,
+  MonthlySummaryCategoryItem,
+  YearlySpendingTrendItem,
+  YearlySpendingTrendSnapshot,
+  MonthlyBudgetDetailSnapshot,
   MonthlyBudgetOverview,
   OcrDebugInfo,
   PendingImportGroupSummary,
@@ -223,6 +235,149 @@ function createEmptyBudgetOverview(date: Date): MonthlyBudgetOverview {
   };
 }
 
+function createFallbackBudgetDetailSnapshot(date: Date): MonthlyBudgetDetailSnapshot {
+  return {
+    account: createFallbackAccountSnapshot(),
+    targetMonth: monthStartDateString(date),
+    monthLabel: formatMonthLabel(monthStartDateString(date)),
+    templateId: null,
+    monthlyBudgetId: null,
+    totalBudget: null,
+    totalSpent: 0,
+    totalRemaining: null,
+    totalUsageRate: null,
+    hasBudget: false,
+    tracksSelectedCategories: false,
+    categoryItems: [],
+  };
+}
+
+async function getDefaultBudgetTemplateRows(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  accountContext: NonNullable<Awaited<ReturnType<typeof getAuthenticatedAccountContext>>>,
+) {
+  const { data: template, error: templateError } = await supabase
+    .from("budget_templates")
+    .select("id, user_id, account_id, name, total_budget, is_default, created_at, updated_at")
+    .eq("account_id", accountContext.currentAccount.id)
+    .eq("is_default", true)
+    .maybeSingle();
+
+  if (templateError || !template) {
+    return {
+      template: null,
+      categories: [] as BudgetTemplateCategoryRow[],
+    };
+  }
+
+  const { data: templateCategories, error: templateCategoriesError } = await supabase
+    .from("budget_template_categories")
+    .select("id, template_id, category_id, budget_amount, created_at, updated_at")
+    .eq("template_id", template.id)
+    .order("created_at", { ascending: true });
+
+  return {
+    template: template as BudgetTemplateRow,
+    categories:
+      !templateCategoriesError && templateCategories
+        ? (templateCategories as BudgetTemplateCategoryRow[])
+        : [],
+  };
+}
+
+async function getMonthlyBudgetRows(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  accountContext: NonNullable<Awaited<ReturnType<typeof getAuthenticatedAccountContext>>>,
+  targetMonth: string,
+) {
+  const { data: budget, error: budgetError } = await supabase
+    .from("monthly_budgets")
+    .select("id, user_id, account_id, target_month, budget_amount, template_id, created_at, updated_at")
+    .eq("target_month", targetMonth)
+    .eq("account_id", accountContext.currentAccount.id)
+    .maybeSingle();
+
+  if (budgetError || !budget) {
+    return {
+      budget: null,
+      categories: [] as MonthlyBudgetCategoryRow[],
+    };
+  }
+
+  const { data: categories, error: categoriesError } = await supabase
+    .from("monthly_budget_categories")
+    .select("id, monthly_budget_id, category_id, budget_amount, created_at, updated_at")
+    .eq("monthly_budget_id", budget.id)
+    .order("created_at", { ascending: true });
+
+  return {
+    budget: budget as MonthlyBudgetRow,
+    categories:
+      !categoriesError && categories ? (categories as MonthlyBudgetCategoryRow[]) : [],
+  };
+}
+
+async function ensureMonthlyBudgetRows(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  accountContext: NonNullable<Awaited<ReturnType<typeof getAuthenticatedAccountContext>>>,
+  targetMonth: string,
+) {
+  const existing = await getMonthlyBudgetRows(supabase, accountContext, targetMonth);
+
+  if (existing.budget) {
+    return existing;
+  }
+
+  const templateRows = await getDefaultBudgetTemplateRows(supabase, accountContext);
+
+  if (!templateRows.template) {
+    return existing;
+  }
+
+  const { data: insertedBudget, error: insertError } = await supabase
+    .from("monthly_budgets")
+    .insert({
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
+      target_month: targetMonth,
+      budget_amount: templateRows.template.total_budget,
+      template_id: templateRows.template.id,
+    })
+    .select("id, user_id, account_id, target_month, budget_amount, template_id, created_at, updated_at")
+    .single();
+
+  if (insertError || !insertedBudget) {
+    return existing;
+  }
+
+  const categoryRows = templateRows.categories
+    .filter((row) => row.budget_amount > 0)
+    .map((row) => ({
+      monthly_budget_id: insertedBudget.id,
+      category_id: row.category_id,
+      budget_amount: row.budget_amount,
+    }));
+
+  if (categoryRows.length > 0) {
+    await supabase.from("monthly_budget_categories").insert(categoryRows);
+  }
+
+  return getMonthlyBudgetRows(supabase, accountContext, targetMonth);
+}
+
+function mapBudgetCategoryAllocations(
+  rows: { category_id: string; budget_amount: number }[],
+  categoryMap: Map<string, string>,
+): BudgetCategoryAllocation[] {
+  return rows
+    .map((row) => ({
+      categoryId: row.category_id,
+      categoryName: categoryMap.get(row.category_id) ?? "未設定カテゴリ",
+      budgetAmount: row.budget_amount,
+    }))
+    .sort((left, right) => right.budgetAmount - left.budgetAmount);
+}
+
 function createEmptyReportSnapshot(
   date: Date,
   account: CurrentAccountSnapshot
@@ -236,6 +391,48 @@ function createEmptyReportSnapshot(
     totalAmount: 0,
     dailySpending: [],
     availableMonths: [{ value: targetMonth, label: formatMonthLabel(`${targetMonth}-01`) }]
+  };
+}
+
+function createEmptyMonthlySummarySnapshot(
+  date: Date,
+  account: CurrentAccountSnapshot
+): MonthlySummarySnapshot {
+  const targetMonth = monthStartDateString(date).slice(0, 7);
+
+  return {
+    account,
+    targetMonth,
+    monthLabel: formatMonthLabel(`${targetMonth}-01`),
+    totalAmount: 0,
+    previousMonthAmount: 0,
+    differenceFromPreviousMonth: 0,
+    budgetAmount: null,
+    differenceFromBudget: null,
+    usageRate: null,
+    fixedAmount: 0,
+    variableAmount: 0,
+    topCategories: [],
+    availableMonths: [{ value: targetMonth, label: formatMonthLabel(`${targetMonth}-01`) }]
+  };
+}
+
+function createEmptyYearlySpendingTrendSnapshot(
+  date: Date,
+  account: CurrentAccountSnapshot
+): YearlySpendingTrendSnapshot {
+  const targetYear = String(date.getFullYear());
+
+  return {
+    account,
+    targetYear,
+    totalAmount: 0,
+    items: Array.from({ length: 12 }, (_, index) => ({
+      month: `${targetYear}-${String(index + 1).padStart(2, "0")}`,
+      monthLabel: `${index + 1}月`,
+      totalAmount: 0,
+    })),
+    availableYears: [{ value: targetYear, label: `${targetYear}年` }],
   };
 }
 
@@ -310,24 +507,13 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
     const targetMonth = monthStartDateString(date);
     const { start, end } = monthDateRange(date);
 
-    const { data: budget, error: budgetError } = await supabase
-      .from("monthly_budgets")
-      .select("id, target_month, budget_amount")
-      .eq("target_month", targetMonth)
-      .eq("account_id", accountContext.currentAccount.id)
-      .maybeSingle();
+    const { budget, categories: budgetCategories } = await ensureMonthlyBudgetRows(
+      supabase,
+      accountContext,
+      targetMonth,
+    );
 
-    if (budgetError || !budget) {
-      return createEmptyBudgetOverview(date);
-    }
-
-    const { data: budgetCategories, error: budgetCategoriesError } = await supabase
-      .from("monthly_budget_categories")
-      .select("category_id")
-      .eq("monthly_budget_id", budget.id)
-      .order("created_at", { ascending: true });
-
-    if (budgetCategoriesError) {
+    if (!budget) {
       return createEmptyBudgetOverview(date);
     }
 
@@ -336,19 +522,21 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
     const selectedCategories = categories.filter((category) => selectedCategorySet.has(category.id));
 
     let spentAmount = 0;
+    const spentQuery = supabase
+      .from("expenses")
+      .select("amount")
+      .gte("occurred_on", start)
+      .lte("occurred_on", end)
+      .eq("account_id", accountContext.currentAccount.id);
 
     if (selectedCategoryIds.length > 0) {
-      const { data: spentRows, error: spentError } = await supabase
-        .from("expenses")
-        .select("amount")
-        .gte("occurred_on", start)
-        .lte("occurred_on", end)
-        .eq("account_id", accountContext.currentAccount.id)
-        .in("category_id", selectedCategoryIds);
+      spentQuery.in("category_id", selectedCategoryIds);
+    }
 
-      if (!spentError && spentRows) {
-        spentAmount = spentRows.reduce((sum, row) => sum + row.amount, 0);
-      }
+    const { data: spentRows, error: spentError } = await spentQuery;
+
+    if (!spentError && spentRows) {
+      spentAmount = spentRows.reduce((sum, row) => sum + row.amount, 0);
     }
 
     const monthlyBudget = budget.budget_amount;
@@ -371,6 +559,195 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
     };
   } catch {
     return createEmptyBudgetOverview(date);
+  }
+}
+
+export async function getBudgetTemplateSnapshot(
+  date = new Date(),
+): Promise<BudgetTemplateSnapshot> {
+  const categories = await listCategories();
+  const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
+  const targetMonth = monthStartDateString(date);
+  const previousMonthDate = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  const previousTargetMonth = monthStartDateString(previousMonthDate);
+
+  try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return {
+        targetMonth,
+        monthLabel: formatMonthLabel(targetMonth),
+        templateId: null,
+        totalBudget: null,
+        categoryBudgets: [],
+        categories,
+        tracksCategoryBudgets: false,
+      };
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const [{ template, categories: templateCategories }, monthlyRows, previousMonthRows] = await Promise.all([
+      getDefaultBudgetTemplateRows(supabase, accountContext),
+      getMonthlyBudgetRows(supabase, accountContext, targetMonth),
+      getMonthlyBudgetRows(supabase, accountContext, previousTargetMonth),
+    ]);
+
+    const sourceBudget = template?.total_budget ?? monthlyRows.budget?.budget_amount ?? null;
+    const sourceCategoryRows =
+      templateCategories.length > 0
+        ? templateCategories
+        : monthlyRows.categories.map((row) => ({
+            id: row.id,
+            template_id: template?.id ?? "",
+            category_id: row.category_id,
+            budget_amount: row.budget_amount,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+          }));
+    const previousBudgetMap = new Map(
+      previousMonthRows.categories.map((row) => [row.category_id, row.budget_amount]),
+    );
+
+    return {
+      targetMonth,
+      monthLabel: formatMonthLabel(targetMonth),
+      templateId: template?.id ?? null,
+      totalBudget: sourceBudget,
+      categoryBudgets: mapBudgetCategoryAllocations(sourceCategoryRows, categoryMap).map((item) => ({
+        ...item,
+        previousBudgetAmount: previousBudgetMap.get(item.categoryId) ?? null,
+      })),
+      categories,
+      tracksCategoryBudgets: sourceCategoryRows.some((row) => row.budget_amount > 0),
+    };
+  } catch {
+    return {
+      targetMonth,
+      monthLabel: formatMonthLabel(targetMonth),
+      templateId: null,
+      totalBudget: null,
+      categoryBudgets: [],
+      categories,
+      tracksCategoryBudgets: false,
+    };
+  }
+}
+
+export async function getMonthlyBudgetDetailSnapshot(
+  month?: string,
+): Promise<MonthlyBudgetDetailSnapshot> {
+  const targetDate = resolveMonthDate(month);
+
+  try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return createFallbackBudgetDetailSnapshot(targetDate);
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const categories = await listCategories();
+    const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
+    const targetMonth = monthStartDateString(targetDate);
+    const { start, end } = monthDateRange(targetDate);
+    const monthlyRows = await ensureMonthlyBudgetRows(supabase, accountContext, targetMonth);
+
+    if (!monthlyRows.budget) {
+      return {
+        account: accountContext,
+        targetMonth,
+        monthLabel: formatMonthLabel(targetMonth),
+        templateId: null,
+        monthlyBudgetId: null,
+        totalBudget: null,
+        totalSpent: 0,
+        totalRemaining: null,
+        totalUsageRate: null,
+        hasBudget: false,
+        tracksSelectedCategories: false,
+        categoryItems: [],
+      };
+    }
+
+    const trackedCategoryIds = monthlyRows.categories
+      .filter((row) => row.budget_amount > 0)
+      .map((row) => row.category_id);
+    const tracksSelectedCategories = trackedCategoryIds.length > 0;
+    const expenseQuery = supabase
+      .from("expenses")
+      .select("category_id, amount")
+      .eq("account_id", accountContext.currentAccount.id)
+      .gte("occurred_on", start)
+      .lte("occurred_on", end);
+
+    if (tracksSelectedCategories) {
+      expenseQuery.in("category_id", trackedCategoryIds);
+    }
+
+    const { data: expenseRows, error: expenseError } = await expenseQuery;
+
+    if (expenseError) {
+      return createFallbackBudgetDetailSnapshot(targetDate);
+    }
+
+    const spentByCategory = new Map<string, number>();
+    for (const row of expenseRows ?? []) {
+      spentByCategory.set(row.category_id, (spentByCategory.get(row.category_id) ?? 0) + row.amount);
+    }
+
+    const categoryIds = tracksSelectedCategories
+      ? trackedCategoryIds
+      : Array.from(
+          new Set([
+            ...monthlyRows.categories.map((row) => row.category_id),
+            ...Array.from(spentByCategory.keys()),
+          ]),
+        );
+
+    const budgetMap = new Map(
+      monthlyRows.categories.map((row) => [row.category_id, row.budget_amount]),
+    );
+
+    const categoryItems: BudgetDetailCategoryItem[] = categoryIds
+      .map((categoryId) => {
+        const budgetAmount = budgetMap.get(categoryId) ?? 0;
+        const spentAmount = spentByCategory.get(categoryId) ?? 0;
+        return {
+          categoryId,
+          categoryName: categoryMap.get(categoryId) ?? "未設定カテゴリ",
+          budgetAmount,
+          spentAmount,
+          remainingAmount: budgetAmount - spentAmount,
+          usageRate: budgetAmount > 0 ? spentAmount / budgetAmount : null,
+        };
+      })
+      .sort((left, right) => {
+        if (left.budgetAmount === right.budgetAmount) {
+          return right.spentAmount - left.spentAmount;
+        }
+        return right.budgetAmount - left.budgetAmount;
+      });
+
+    const totalSpent = (expenseRows ?? []).reduce((sum, row) => sum + row.amount, 0);
+    const totalBudget = monthlyRows.budget.budget_amount;
+
+    return {
+      account: accountContext,
+      targetMonth,
+      monthLabel: formatMonthLabel(targetMonth),
+      templateId: monthlyRows.budget.template_id,
+      monthlyBudgetId: monthlyRows.budget.id,
+      totalBudget,
+      totalSpent,
+      totalRemaining: totalBudget - totalSpent,
+      totalUsageRate: totalBudget > 0 ? totalSpent / totalBudget : null,
+      hasBudget: true,
+      tracksSelectedCategories,
+      categoryItems,
+    };
+  } catch {
+    return createFallbackBudgetDetailSnapshot(targetDate);
   }
 }
 
@@ -536,6 +913,179 @@ export async function getExpensesReportSnapshot(month?: string): Promise<Expense
     };
   } catch {
     return createEmptyReportSnapshot(resolveMonthDate(month), createFallbackAccountSnapshot());
+  }
+}
+
+export async function getMonthlySummarySnapshot(month?: string): Promise<MonthlySummarySnapshot> {
+  try {
+    const accountContext = await getAuthenticatedAccountContext();
+    const supabase = await createServerSupabaseClient();
+    const categories = await listCategories();
+    const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
+    const targetDate = resolveMonthDate(month);
+
+    if (!accountContext) {
+      return createEmptyMonthlySummarySnapshot(targetDate, createFallbackAccountSnapshot());
+    }
+
+    const previousMonthDate = new Date(targetDate.getFullYear(), targetDate.getMonth() - 1, 1);
+    const { start, end } = monthDateRange(targetDate);
+    const { start: previousStart, end: previousEnd } = monthDateRange(previousMonthDate);
+
+    const [budgetOverview, monthResult, previousResult, allDatesResult] = await Promise.all([
+      getMonthlyBudgetOverview(targetDate),
+      supabase
+        .from("expenses")
+        .select("category_id, amount, recurring_expense_id")
+        .eq("account_id", accountContext.currentAccount.id)
+        .gte("occurred_on", start)
+        .lte("occurred_on", end),
+      supabase
+        .from("expenses")
+        .select("amount")
+        .eq("account_id", accountContext.currentAccount.id)
+        .gte("occurred_on", previousStart)
+        .lte("occurred_on", previousEnd),
+      supabase
+        .from("expenses")
+        .select("occurred_on")
+        .eq("account_id", accountContext.currentAccount.id)
+        .order("occurred_on", { ascending: false })
+    ]);
+
+    if (monthResult.error || previousResult.error || allDatesResult.error) {
+      return createEmptyMonthlySummarySnapshot(targetDate, accountContext);
+    }
+
+    const monthRows = monthResult.data ?? [];
+    const previousRows = previousResult.data ?? [];
+    const allExpenseDates = allDatesResult.data ?? [];
+
+    const totalAmount = monthRows.reduce((sum, row) => sum + row.amount, 0);
+    const previousMonthAmount = previousRows.reduce((sum, row) => sum + row.amount, 0);
+    const differenceFromPreviousMonth = totalAmount - previousMonthAmount;
+    const fixedAmount = monthRows
+      .filter((row) => row.recurring_expense_id != null)
+      .reduce((sum, row) => sum + row.amount, 0);
+    const variableAmount = totalAmount - fixedAmount;
+
+    const summaryMap = new Map<string, MonthlySummaryCategoryItem>();
+
+    for (const row of monthRows) {
+      const categoryId = row.category_id;
+      const current = summaryMap.get(categoryId) ?? {
+        categoryId,
+        categoryName: categoryMap.get(categoryId) ?? "未設定カテゴリ",
+        totalAmount: 0,
+        shareRate: 0,
+      };
+
+      current.totalAmount += row.amount;
+      summaryMap.set(categoryId, current);
+    }
+
+    const topCategories = Array.from(summaryMap.values())
+      .sort((left, right) => right.totalAmount - left.totalAmount)
+      .slice(0, 5)
+      .map((item) => ({
+        ...item,
+        shareRate: totalAmount > 0 ? item.totalAmount / totalAmount : 0,
+      }));
+
+    return {
+      account: accountContext,
+      targetMonth: start.slice(0, 7),
+      monthLabel: formatMonthLabel(start),
+      totalAmount,
+      previousMonthAmount,
+      differenceFromPreviousMonth,
+      budgetAmount: budgetOverview.monthlyBudget,
+      differenceFromBudget:
+        budgetOverview.monthlyBudget != null
+          ? budgetOverview.monthlyBudget - totalAmount
+          : null,
+      usageRate: budgetOverview.usageRate,
+      fixedAmount,
+      variableAmount,
+      topCategories,
+      availableMonths: buildAvailableMonths(allExpenseDates, targetDate),
+    };
+  } catch {
+    return createEmptyMonthlySummarySnapshot(resolveMonthDate(month), createFallbackAccountSnapshot());
+  }
+}
+
+export async function getYearlySpendingTrendSnapshot(
+  year?: string
+): Promise<YearlySpendingTrendSnapshot> {
+  const targetYear = year && /^\d{4}$/.test(year) ? year : String(new Date().getFullYear());
+  const targetDate = new Date(`${targetYear}-01-01T00:00:00`);
+
+  try {
+    const accountContext = await getAuthenticatedAccountContext();
+
+    if (!accountContext) {
+      return createEmptyYearlySpendingTrendSnapshot(targetDate, createFallbackAccountSnapshot());
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const start = `${targetYear}-01-01`;
+    const end = `${targetYear}-12-31`;
+
+    const [{ data: yearRows, error: yearError }, { data: allDates, error: allDatesError }] =
+      await Promise.all([
+        supabase
+          .from("expenses")
+          .select("occurred_on, amount")
+          .eq("account_id", accountContext.currentAccount.id)
+          .gte("occurred_on", start)
+          .lte("occurred_on", end),
+        supabase
+          .from("expenses")
+          .select("occurred_on")
+          .eq("account_id", accountContext.currentAccount.id)
+          .order("occurred_on", { ascending: false }),
+      ]);
+
+    if (yearError || allDatesError) {
+      return createEmptyYearlySpendingTrendSnapshot(targetDate, accountContext);
+    }
+
+    const monthlyTotals = new Map<string, number>();
+
+    for (const row of yearRows ?? []) {
+      const monthKey = row.occurred_on.slice(0, 7);
+      monthlyTotals.set(monthKey, (monthlyTotals.get(monthKey) ?? 0) + row.amount);
+    }
+
+    const items: YearlySpendingTrendItem[] = Array.from({ length: 12 }, (_, index) => {
+      const month = `${targetYear}-${String(index + 1).padStart(2, "0")}`;
+      return {
+        month,
+        monthLabel: `${index + 1}月`,
+        totalAmount: monthlyTotals.get(month) ?? 0,
+      };
+    });
+
+    const years = new Set<string>([targetYear]);
+    for (const row of allDates ?? []) {
+      years.add(row.occurred_on.slice(0, 4));
+    }
+
+    return {
+      account: accountContext,
+      targetYear,
+      totalAmount: items.reduce((sum, item) => sum + item.totalAmount, 0),
+      items,
+      availableYears: Array.from(years)
+        .sort((left, right) => (left < right ? 1 : -1))
+        .map((value) => ({ value, label: `${value}年` })),
+    };
+  } catch {
+    return createEmptyYearlySpendingTrendSnapshot(
+      targetDate,
+      createFallbackAccountSnapshot()
+    );
   }
 }
 

@@ -33,6 +33,7 @@ export type ExpenseListItem = {
   merchantName: string | null;
   note: string | null;
   importGroupId: string;
+  recurringExpenseId?: string | null;
   categoryId: string | null;
   categoryName: string;
   sourceType: SourceType;
@@ -57,6 +58,48 @@ export type MonthlyBudgetOverview = {
   isOverBudget: boolean;
   hasBudget: boolean;
   hasSelectedCategories: boolean;
+};
+
+export type BudgetCategoryAllocation = {
+  categoryId: string;
+  categoryName: string;
+  budgetAmount: number;
+  previousBudgetAmount?: number | null;
+};
+
+export type BudgetTemplateSnapshot = {
+  targetMonth: string;
+  monthLabel: string;
+  templateId: string | null;
+  totalBudget: number | null;
+  categoryBudgets: BudgetCategoryAllocation[];
+  categories: CategoryOption[];
+  tracksCategoryBudgets: boolean;
+};
+
+export type BudgetDetailCategoryItem = {
+  categoryId: string;
+  categoryName: string;
+  budgetAmount: number;
+  spentAmount: number;
+  remainingAmount: number;
+  usageRate: number | null;
+  isOverBudget?: boolean;
+};
+
+export type MonthlyBudgetDetailSnapshot = {
+  account: CurrentAccountSnapshot;
+  targetMonth: string;
+  monthLabel: string;
+  templateId: string | null;
+  monthlyBudgetId: string | null;
+  totalBudget: number | null;
+  totalSpent: number;
+  totalRemaining: number | null;
+  totalUsageRate: number | null;
+  hasBudget: boolean;
+  tracksSelectedCategories: boolean;
+  categoryItems: BudgetDetailCategoryItem[];
 };
 
 export type DailySpendingItem = {
@@ -92,6 +135,43 @@ export type ExpensesReportSnapshot = {
   totalAmount: number;
   dailySpending: DailySpendingItem[];
   availableMonths: ReportMonthOption[];
+};
+
+export type MonthlySummaryCategoryItem = {
+  categoryId: string;
+  categoryName: string;
+  totalAmount: number;
+  shareRate: number;
+};
+
+export type MonthlySummarySnapshot = {
+  account: CurrentAccountSnapshot;
+  targetMonth: string;
+  monthLabel: string;
+  totalAmount: number;
+  previousMonthAmount: number;
+  differenceFromPreviousMonth: number;
+  budgetAmount: number | null;
+  differenceFromBudget: number | null;
+  usageRate: number | null;
+  fixedAmount: number;
+  variableAmount: number;
+  topCategories: MonthlySummaryCategoryItem[];
+  availableMonths: ReportMonthOption[];
+};
+
+export type YearlySpendingTrendItem = {
+  month: string;
+  monthLabel: string;
+  totalAmount: number;
+};
+
+export type YearlySpendingTrendSnapshot = {
+  account: CurrentAccountSnapshot;
+  targetYear: string;
+  totalAmount: number;
+  items: YearlySpendingTrendItem[];
+  availableYears: { value: string; label: string }[];
 };
 
 export type DailyExpenseCategorySummary = {
@@ -162,6 +242,48 @@ export type PendingImportsPageSnapshot = {
   account: CurrentAccountSnapshot;
   groups: PendingImportGroupSummary[];
   totalCount: number;
+};
+
+export type RecurringExpenseListItem = {
+  id: string;
+  name: string;
+  amount: number;
+  categoryId: string;
+  categoryName: string;
+  scheduleDay: number;
+  scheduleTime: string;
+  memo: string | null;
+  isActive: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  lastAppliedAt: string | null;
+  nextScheduledAt: string | null;
+};
+
+export type RecurringExpenseLogResult =
+  | "applied"
+  | "skipped"
+  | "inactive"
+  | "already_applied"
+  | "out_of_range";
+
+export type RecurringExpenseLogListItem = {
+  id: string;
+  recurringExpenseId: string;
+  recurringExpenseName: string;
+  executedAt: string;
+  targetMonth: string;
+  resultType: RecurringExpenseLogResult;
+  amount: number | null;
+  reason: string | null;
+};
+
+export type RecurringExpensesPageSnapshot = {
+  account: CurrentAccountSnapshot;
+  items: RecurringExpenseListItem[];
+  logs: RecurringExpenseLogListItem[];
+  totalCount: number;
+  activeCount: number;
 };
 
 export type OcrDebugInfo = {

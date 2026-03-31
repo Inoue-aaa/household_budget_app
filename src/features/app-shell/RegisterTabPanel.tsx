@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil, ScanLine, CreditCard, AlertCircle } from "lucide-react";
+import { Pencil, ScanLine, CreditCard, AlertCircle, Repeat2 } from "lucide-react";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -67,6 +67,16 @@ export function RegisterTabPanel({
               <span>
                 スクリーンショットを明細単位で確認し、必要な修正後に保存します。
               </span>
+            </div>
+          </Link>
+
+          <Link className="link-card link-card-manual" href="/register/fixed/list">
+            <div className="link-card-icon link-card-icon-neutral">
+              <Repeat2 size={19} />
+            </div>
+            <div className="link-card-body">
+              <strong>固定費 / サブスク登録</strong>
+              <span>毎月発生する支出を登録し、反映日と時刻を設定できます。</span>
             </div>
           </Link>
         </div>

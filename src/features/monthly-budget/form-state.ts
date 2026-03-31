@@ -1,9 +1,16 @@
-export type MonthlyBudgetFieldName = "budgetAmount";
+export type MonthlyBudgetFieldName = "budgetAmount" | "categoryBudgets";
+
+export type MonthlyBudgetCategoryValue = {
+  categoryId: string;
+  amount: string;
+};
 
 export type MonthlyBudgetFormValues = {
   targetMonth: string;
   budgetAmount: string;
-  categoryIds: string[];
+  usesCategoryBudgets: string;
+  applyToFuture: string;
+  categoryBudgets: MonthlyBudgetCategoryValue[];
 };
 
 export type MonthlyBudgetFormState = {
@@ -14,10 +21,10 @@ export type MonthlyBudgetFormState = {
 };
 
 export function createInitialMonthlyBudgetFormState(
-  values: MonthlyBudgetFormValues
+  values: MonthlyBudgetFormValues,
 ): MonthlyBudgetFormState {
   return {
     status: "idle",
-    values
+    values,
   };
 }

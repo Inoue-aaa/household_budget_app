@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { BarChart3, NotebookPen } from "lucide-react";
+import { BarChart3, ChartColumnBig, NotebookPen } from "lucide-react";
 import { NoticeBanner } from "@/components/NoticeBanner";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
@@ -61,14 +61,31 @@ export function ExpensesTabPanel({
             <span className="section-card-link-icon" aria-hidden="true">
               <BarChart3 size={18} />
             </span>
-            <h2 className="section-title">支出レポート</h2>
+            <h2 className="section-title">日次レポート</h2>
           </div>
           <span aria-hidden="true" className="section-card-link-arrow">
             ›
           </span>
         </div>
         <p className="section-copy">
-          月ごとの推移と、日別の支出を見返せます。日別詳細から個別の修正にも進めます。
+          表示月の日別支出を確認できます。各日から詳細へ進み、個別の修正も行えます。
+        </p>
+      </Link>
+
+      <Link className="surface section-card section-card-link" href="/expenses/summary">
+        <div className="section-card-link-header">
+          <div className="section-card-link-title">
+            <span className="section-card-link-icon section-card-link-icon-soft" aria-hidden="true">
+              <ChartColumnBig size={18} />
+            </span>
+            <h2 className="section-title">月次サマリー</h2>
+          </div>
+          <span aria-hidden="true" className="section-card-link-arrow">
+            ›
+          </span>
+        </div>
+        <p className="section-copy">
+          月全体の支出、予算との差額、固定費と変動費の内訳を振り返れます。
         </p>
       </Link>
 

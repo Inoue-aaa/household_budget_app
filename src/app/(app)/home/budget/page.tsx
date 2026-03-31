@@ -2,33 +2,34 @@ import Link from "next/link";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { BudgetSettingsForm } from "@/features/monthly-budget/BudgetSettingsForm";
-import { getMonthlyBudgetOverview, listCategories } from "@/lib/finance/queries";
+import { getBudgetTemplateSnapshot } from "@/lib/finance/queries";
 
 export default async function HomeBudgetPage() {
-  const [budget, categories] = await Promise.all([getMonthlyBudgetOverview(), listCategories()]);
+  const snapshot = await getBudgetTemplateSnapshot();
 
   return (
     <div className="page-stack">
       <ScreenHeader
         eyebrow="Budget"
         title="今月の予算設定"
-        description="総予算額と集計対象カテゴリを設定します。固定費を除きたいときは、対象カテゴリから外してください。"
+        description="全体予算とカテゴリ別予算を設定できます。保存した内容は今月と次月以降の基本設定に使われます。"
       />
 
       <SectionCard title="予算を編集">
         <BudgetSettingsForm
-          categories={categories}
-          initialBudgetAmount={budget.monthlyBudget}
-          initialCategoryIds={budget.selectedCategoryIds}
-          monthLabel={budget.monthLabel}
-          targetMonth={budget.targetMonth}
+          categories={snapshot.categories}
+          initialBudgetAmount={snapshot.totalBudget}
+          initialCategoryBudgets={snapshot.categoryBudgets}
+          monthLabel={snapshot.monthLabel}
+          targetMonth={snapshot.targetMonth}
+          tracksCategoryBudgets={snapshot.tracksCategoryBudgets}
         />
       </SectionCard>
 
       <div className="single-action-row">
         <Link
           className="button button-secondary compact-button action-button action-button-secondary bottom-back-button"
-          href="/home"
+          href="/app?tab=home"
         >
           back
         </Link>

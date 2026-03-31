@@ -21,13 +21,13 @@ export default async function ExpensesReportPage({
     <div className="page-stack">
       <ScreenHeader
         eyebrow="Reports"
-        title="支出レポート"
-        description="月ごとの推移と、日別の支出を見返せます。日別詳細から個別の修正にも進めます。"
+        title="日次レポート"
+        description="表示月の日別支出を確認できます。各日から詳細へ進み、個別の修正も行えます。"
       />
 
       <SectionCard
         title="表示月"
-        description="年月を切り替えると、その月の日別支出と合計金額を確認できます。"
+        description="年月を切り替えて、その月の日別支出を確認できます。"
       >
         <form className="field-stack" method="get">
           <div className="field">
@@ -57,7 +57,7 @@ export default async function ExpensesReportPage({
 
       <SectionCard
         title={`${snapshot.monthLabel}の日別支出`}
-        description="行全体をタップすると、その日の詳細画面に移動します。支出がない日も選択できます。"
+        description="日ごとの支出を確認できます。各日から詳細画面へ移動できます。"
       >
         <DailySpendingChart
           items={snapshot.dailySpending}

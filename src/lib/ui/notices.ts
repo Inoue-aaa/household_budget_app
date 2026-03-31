@@ -20,7 +20,7 @@ export type ReviewNoticeCode =
   | "confirm-error"
   | "discard-error";
 
-export type RegisterNoticeCode = "group-discarded";
+export type RegisterNoticeCode = "group-discarded" | "fixed-expense-created";
 export type PendingNoticeCode = "deleted" | "delete_error";
 export type ExpensesNoticeCode = "created" | "deleted" | "delete_error";
 
@@ -149,15 +149,20 @@ export function getReviewNotice(code?: string): NoticeConfig | null {
 }
 
 export function getRegisterNotice(code?: string): NoticeConfig | null {
-  if (code !== "group-discarded") {
-    return null;
-  }
-
-  return {
-    tone: "success",
-    title: "取り込みを破棄しました",
-    description: "未確定の確認データをまとめて削除しました。"
+  const map: Record<RegisterNoticeCode, NoticeConfig> = {
+    "group-discarded": {
+      tone: "success",
+      title: "取り込みを破棄しました",
+      description: "未確定の確認データをまとめて削除しました。",
+    },
+    "fixed-expense-created": {
+      tone: "success",
+      title: "固定費を保存しました",
+      description: "毎月の固定費 / サブスク設定を登録しました。",
+    },
   };
+
+  return code ? map[code as RegisterNoticeCode] ?? null : null;
 }
 
 export function getPendingNotice(code?: string): NoticeConfig | null {
