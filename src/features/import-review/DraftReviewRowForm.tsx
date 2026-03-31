@@ -19,6 +19,9 @@ type DraftReviewRowFormProps = {
   merchantLabel: string;
   values: DraftReviewEditableValues;
   onChange: (field: keyof DraftReviewEditableValues, value: string) => void;
+  baseAmount: string;
+  taxRate: 0 | 8 | 10;
+  onTaxRateChange: (rate: 0 | 8 | 10) => void;
 };
 
 export function DraftReviewRowForm({
@@ -28,6 +31,8 @@ export function DraftReviewRowForm({
   merchantLabel,
   values,
   onChange,
+  taxRate,
+  onTaxRateChange,
 }: DraftReviewRowFormProps) {
   return (
     <div className="field-stack review-row-form">
@@ -91,6 +96,19 @@ export function DraftReviewRowForm({
             type="number"
             value={values.amount}
           />
+          <div className="tax-rate-picker" role="group" aria-label="税率">
+            {([8, 10] as const).map((rate) => (
+              <button
+                aria-pressed={taxRate === rate}
+                className={`tax-rate-chip${taxRate === rate ? " tax-rate-chip-active" : ""}`}
+                key={rate}
+                onClick={() => onTaxRateChange(taxRate === rate ? 0 : rate)}
+                type="button"
+              >
+                {rate}%
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="field review-field">

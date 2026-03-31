@@ -353,6 +353,13 @@ function absorbDiscountRows(rows: NormalizedReceiptItem[]) {
     const target = [...merged].reverse().find(canMergeDiscountInto);
 
     if (!target || row.amount == null || row.amount >= 0) {
+      // Cannot absorb amount, but still preserve the discount label on the nearest product
+      if (target && row.title) {
+        target.discountLabels = [
+          ...target.discountLabels,
+          ...(target.discountLabels.includes(row.title) ? [] : [row.title])
+        ];
+      }
       merged.push({
         ...row,
         kind: "unknown"
@@ -362,6 +369,13 @@ function absorbDiscountRows(rows: NormalizedReceiptItem[]) {
 
     const targetBaseAmount = target.originalAmount ?? target.finalAmount ?? target.amount ?? null;
     if (targetBaseAmount == null || targetBaseAmount <= 0) {
+      // Cannot absorb amount, but still preserve the discount label on the nearest product
+      if (row.title) {
+        target.discountLabels = [
+          ...target.discountLabels,
+          ...(target.discountLabels.includes(row.title) ? [] : [row.title])
+        ];
+      }
       merged.push({
         ...row,
         kind: "unknown"

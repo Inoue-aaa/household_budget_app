@@ -22,6 +22,8 @@ type DraftReviewPanelProps = {
 type EditableDraftItem = {
   id: string;
   values: DraftReviewEditableValues;
+  baseAmount: string;
+  taxRate: 0 | 8 | 10;
 };
 
 function normalizeEditableOccurredOn(value: string | null) {
@@ -45,17 +47,22 @@ function merchantFieldLabel(sourceType: SourceType) {
 }
 
 function createEditableItems(snapshot: DraftReviewSnapshot): EditableDraftItem[] {
-  return snapshot.items.map((item) => ({
-    id: item.id,
-    values: {
-      occurredOn: normalizeEditableOccurredOn(item.occurredOn),
-      merchantName: item.merchantName ?? "",
-      title: item.title ?? "",
-      amount: item.amount == null ? "" : String(item.amount),
-      categoryId: item.categoryId ?? snapshot.categories[0]?.id ?? "",
-      note: item.note ?? ""
-    }
-  }));
+  return snapshot.items.map((item) => {
+    const amount = item.amount == null ? "" : String(item.amount);
+    return {
+      id: item.id,
+      baseAmount: amount,
+      taxRate: 0,
+      values: {
+        occurredOn: normalizeEditableOccurredOn(item.occurredOn),
+        merchantName: item.merchantName ?? "",
+        title: item.title ?? "",
+        amount,
+        categoryId: item.categoryId ?? snapshot.categories[0]?.id ?? "",
+        note: item.note ?? ""
+      }
+    };
+  });
 }
 
 export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
@@ -185,25 +192,45 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
                   </div>
 
                   <DraftReviewRowForm
+                    baseAmount={editableItem.baseAmount}
                     categories={snapshot.categories}
                     importGroupId={snapshot.importGroupId}
                     item={item}
                     merchantLabel={merchantLabel}
                     onChange={(field, value) => {
                       setEditableItems((current) =>
-                        current.map((entry) =>
-                          entry.id === item.id
-                            ? {
-                                ...entry,
-                                values: {
-                                  ...entry.values,
-                                  [field]: value
-                                }
-                              }
-                            : entry
-                        )
+                        current.map((entry) => {
+                          if (entry.id !== item.id) return entry;
+                          // When user manually edits amount, reset base amount and tax rate
+                          if (field === "amount") {
+                            return {
+                              ...entry,
+                              baseAmount: value,
+                              taxRate: 0,
+                              values: { ...entry.values, [field]: value }
+                            };
+                          }
+                          return { ...entry, values: { ...entry.values, [field]: value } };
+                        })
                       );
                     }}
+                    onTaxRateChange={(rate) => {
+                      setEditableItems((current) =>
+                        current.map((entry) => {
+                          if (entry.id !== item.id) return entry;
+                          const newAmount =
+                            rate === 0
+                              ? entry.baseAmount
+                              : String(Math.round(Number(entry.baseAmount) * (1 + rate / 100)));
+                          return {
+                            ...entry,
+                            taxRate: rate,
+                            values: { ...entry.values, amount: newAmount }
+                          };
+                        })
+                      );
+                    }}
+                    taxRate={editableItem.taxRate}
                     values={editableItem.values}
                   />
                 </article>
