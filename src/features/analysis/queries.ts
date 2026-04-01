@@ -43,6 +43,19 @@ function formatPeriodLabel(startDate: string, endDate: string) {
   return `${formatDisplayDate(startDate)} 〜 ${formatDisplayDate(endDate)}`;
 }
 
+function isSamePeriod(
+  snapshot: { period: { startDate: string; endDate: string } },
+  startDate?: string,
+  endDate?: string,
+) {
+  return (
+    typeof startDate === "string" &&
+    typeof endDate === "string" &&
+    snapshot.period.startDate === startDate &&
+    snapshot.period.endDate === endDate
+  );
+}
+
 function normalizeEvidenceSummary(value: unknown): ConsultationEvidenceSummary | null {
   if (!value || typeof value !== "object") {
     return null;
@@ -238,17 +251,10 @@ export async function getAiConsultationPageSnapshot(params?: {
     ]);
     const categoryMap = new Map(categories.map((item) => [item.id, item.name]));
 
-    const currentMonthSnapshotPromise = getAnalysisSnapshot();
-    const requestedSnapshotPromise = getAnalysisSnapshot({
-      startDate: params?.startDate,
-      endDate: params?.endDate,
-    });
-
     const [
       { data: sessionRows },
       { data: savedRows },
       currentMonthSnapshot,
-      requestedSnapshot,
     ] = await Promise.all([
       supabase
         .from("consultation_sessions")
@@ -266,8 +272,7 @@ export async function getAiConsultationPageSnapshot(params?: {
         .eq("account_id", accountContext.currentAccount.id)
         .order("created_at", { ascending: false })
         .limit(8),
-      currentMonthSnapshotPromise,
-      requestedSnapshotPromise,
+      getAnalysisSnapshot(),
     ]);
 
     const sessionRowList = (sessionRows ?? []) as ConsultationSessionRow[];
@@ -305,14 +310,24 @@ export async function getAiConsultationPageSnapshot(params?: {
       };
     }
 
+    const requestedSnapshot =
+      activeSession == null
+        ? isSamePeriod(currentMonthSnapshot, params?.startDate, params?.endDate)
+          ? currentMonthSnapshot
+          : await getAnalysisSnapshot({
+              startDate: params?.startDate,
+              endDate: params?.endDate,
+            })
+        : null;
+
     const effectivePeriod = activeSession
       ? {
           startDate: activeSession.startDate,
           endDate: activeSession.endDate,
         }
       : {
-          startDate: requestedSnapshot.period.startDate,
-          endDate: requestedSnapshot.period.endDate,
+          startDate: requestedSnapshot?.period.startDate ?? currentMonthSnapshot.period.startDate,
+          endDate: requestedSnapshot?.period.endDate ?? currentMonthSnapshot.period.endDate,
         };
 
     const currentMonth = monthDateRange(new Date()).start;

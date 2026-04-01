@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { SubmitButton } from "@/components/SubmitButton";
 import { createManualExpenseAction } from "@/features/manual-expenses/actions";
 import { initialManualExpenseFormState } from "@/features/manual-expenses/form-state";
@@ -34,6 +34,34 @@ export function ManualExpenseForm({
     initialManualExpenseFormState
   );
   const values = state.values;
+  const [amount, setAmount] = useState(values.amount);
+  const [baseAmount, setBaseAmount] = useState(values.amount);
+  const [taxRate, setTaxRate] = useState<0 | 8 | 10>(0);
+
+  useEffect(() => {
+    setAmount(values.amount);
+    setBaseAmount(values.amount);
+    setTaxRate(0);
+  }, [values.amount]);
+
+  function applyTaxRate(rate: 0 | 8 | 10) {
+    const sourceAmount = baseAmount || amount;
+    const parsedAmount = Number(sourceAmount);
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return;
+    }
+
+    if (rate === 0) {
+      setAmount(sourceAmount);
+      setTaxRate(0);
+      return;
+    }
+
+    setBaseAmount(sourceAmount);
+    setAmount(String(Math.floor(parsedAmount * (1 + rate / 100))));
+    setTaxRate(rate);
+  }
 
   return (
     <form
@@ -102,16 +130,34 @@ export function ManualExpenseForm({
         <input
           aria-invalid={Boolean(state.fieldErrors?.amount)}
           data-testid="manual-amount"
-          defaultValue={values.amount}
           id="amount"
           inputMode="numeric"
           min="1"
           name="amount"
+          onChange={(event) => {
+            setAmount(event.target.value);
+            setBaseAmount(event.target.value);
+            setTaxRate(0);
+          }}
           placeholder="例: 1280"
           required
           step="1"
           type="number"
+          value={amount}
         />
+        <div className="tax-rate-picker" role="group" aria-label="税率">
+          {([8, 10] as const).map((rate) => (
+            <button
+              aria-pressed={taxRate === rate}
+              className={`tax-rate-chip${taxRate === rate ? " tax-rate-chip-active" : ""}`}
+              key={rate}
+              onClick={() => applyTaxRate(taxRate === rate ? 0 : rate)}
+              type="button"
+            >
+              {rate}%
+            </button>
+          ))}
+        </div>
         <p className="field-hint">1円以上の整数で入力します。</p>
         {state.fieldErrors?.amount ? (
           <p className="error-text">{state.fieldErrors.amount}</p>

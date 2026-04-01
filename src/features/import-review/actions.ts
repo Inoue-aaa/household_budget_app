@@ -473,6 +473,7 @@ export async function confirmDraftsAction(formData: FormData) {
     redirect("/login");
   }
   const draftsPayload = formData.get("draftsPayload")?.toString();
+  const deletedDraftIdsPayload = formData.get("deletedDraftIdsPayload")?.toString();
 
   const { data: importGroup } = await supabase
     .from("import_groups")
@@ -527,6 +528,35 @@ export async function confirmDraftsAction(formData: FormData) {
         .eq("import_group_id", importGroupId);
 
       if (updateError) {
+        redirect(reviewPath(importGroupId, "confirm-error"));
+      }
+    }
+  }
+
+  if (deletedDraftIdsPayload) {
+    let deletedDraftIds: unknown;
+
+    try {
+      deletedDraftIds = JSON.parse(deletedDraftIdsPayload);
+    } catch {
+      redirect(reviewPath(importGroupId, "confirm-error"));
+    }
+
+    const parsedDeletedDraftIds = z.array(z.string().uuid()).safeParse(deletedDraftIds);
+
+    if (!parsedDeletedDraftIds.success) {
+      redirect(reviewPath(importGroupId, "confirm-error"));
+    }
+
+    if (parsedDeletedDraftIds.data.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("expense_drafts")
+        .delete()
+        .eq("account_id", accountContext.currentAccount.id)
+        .eq("import_group_id", importGroupId)
+        .in("id", parsedDeletedDraftIds.data);
+
+      if (deleteError) {
         redirect(reviewPath(importGroupId, "confirm-error"));
       }
     }

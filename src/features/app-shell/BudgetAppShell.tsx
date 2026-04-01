@@ -1,6 +1,8 @@
 "use client";
 
+import type { Route } from "next";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ExpensesTabPanel } from "@/features/app-shell/ExpensesTabPanel";
 import { HomeTabPanel } from "@/features/app-shell/HomeTabPanel";
 import { RegisterTabPanel } from "@/features/app-shell/RegisterTabPanel";
@@ -31,6 +33,34 @@ function buildShellUrl(tab: AppShellTab) {
   return `/app?tab=${tab}`;
 }
 
+type IdleCallbackHandle = number;
+type IdleCallbackDeadline = { didTimeout: boolean; timeRemaining: () => number };
+
+function runWhenIdle(callback: () => void) {
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (
+      cb: (deadline: IdleCallbackDeadline) => void,
+      options?: { timeout: number },
+    ) => IdleCallbackHandle;
+    cancelIdleCallback?: (handle: IdleCallbackHandle) => void;
+  };
+
+  if (typeof idleWindow.requestIdleCallback === "function") {
+    const handle = idleWindow.requestIdleCallback(() => callback(), {
+      timeout: 1200,
+    });
+
+    return () => {
+      if (typeof idleWindow.cancelIdleCallback === "function") {
+        idleWindow.cancelIdleCallback(handle);
+      }
+    };
+  }
+
+  const handle = window.setTimeout(callback, 180);
+  return () => window.clearTimeout(handle);
+}
+
 function applyThemeToDocument(themeName: AppThemeName) {
   document.documentElement.dataset.theme = themeName;
   document.body.dataset.theme = themeName;
@@ -53,6 +83,7 @@ export function BudgetAppShell({
   initialSnapshot,
   initialNoticeCode,
 }: BudgetAppShellProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<AppShellTab>(initialTab);
   const [snapshot, setSnapshot] = useState<AppShellSnapshot>(initialSnapshot);
   const [noticeCode, setNoticeCode] = useState<string | undefined>(initialNoticeCode);
@@ -132,6 +163,48 @@ export function BudgetAppShell({
       window.removeEventListener(APP_SHELL_SET_TAB_EVENT, handleSetTab as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    const targetMonth = snapshot.home.budget.targetMonth.slice(0, 7);
+    const routes: Route[] =
+      activeTab === "home"
+        ? [
+            "/home/budget",
+            `/home/budget/detail?month=${targetMonth}` as Route,
+            "/expenses/ai",
+          ]
+        : activeTab === "expenses"
+          ? [
+              `/expenses/reports?month=${targetMonth}` as Route,
+              `/expenses/summary?month=${targetMonth}` as Route,
+              `/expenses/history?month=${targetMonth}` as Route,
+            ]
+          : [];
+
+    if (routes.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    const cancelIdle = runWhenIdle(() => {
+      if (cancelled) {
+        return;
+      }
+
+      routes.forEach((route, index) => {
+        window.setTimeout(() => {
+          if (!cancelled) {
+            router.prefetch(route);
+          }
+        }, index * 140);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelIdle();
+    };
+  }, [activeTab, router, snapshot.accountId, snapshot.home.budget.targetMonth]);
 
   const handleThemeSaved = useCallback((themeName: AppThemeName) => {
     setSnapshot((current) => ({

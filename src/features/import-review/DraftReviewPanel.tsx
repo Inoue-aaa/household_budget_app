@@ -67,18 +67,26 @@ function createEditableItems(snapshot: DraftReviewSnapshot): EditableDraftItem[]
 
 export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
   const [reviewedIds, setReviewedIds] = useState<string[]>([]);
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [editableItems, setEditableItems] = useState<EditableDraftItem[]>(() =>
     createEditableItems(snapshot)
   );
   const merchantLabel = merchantFieldLabel(snapshot.sourceType);
 
   const reviewedIdSet = useMemo(() => new Set(reviewedIds), [reviewedIds]);
-  const remainingItems = useMemo(
-    () => snapshot.items.filter((item) => !reviewedIdSet.has(item.id)),
-    [reviewedIdSet, snapshot.items]
+  const deletedIdSet = useMemo(() => new Set(deletedIds), [deletedIds]);
+
+  const visibleItems = useMemo(
+    () => snapshot.items.filter((item) => !deletedIdSet.has(item.id)),
+    [deletedIdSet, snapshot.items]
   );
 
-  const canConfirm = snapshot.items.length > 0 && remainingItems.length === 0;
+  const remainingItems = useMemo(
+    () => visibleItems.filter((item) => !reviewedIdSet.has(item.id)),
+    [reviewedIdSet, visibleItems]
+  );
+
+  const canConfirm = visibleItems.length > 0 && remainingItems.length === 0;
 
   return (
     <div className="page-stack review-page review-page-wide">
@@ -97,7 +105,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
         <div className="review-summary-grid">
           <div className="review-summary-card">
             <span className="stat-label">確認対象</span>
-            <strong className="stat-value">{snapshot.draftCount}件</strong>
+            <strong className="stat-value">{visibleItems.length}件</strong>
           </div>
           <div className="review-summary-card">
             <span className="stat-label">未確認</span>
@@ -120,7 +128,8 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
         ) : (
           <div className="attention-item attention-item-compact">
             <p className="section-copy review-copy">
-              未確認の明細が {remainingItems.length} 件あります。リストから順にチェックしてから、まとめて保存してください。
+              未確認の明細が {remainingItems.length} 件あります。リストから順にチェックしてから、
+              まとめて保存してください。
             </p>
           </div>
         )}
@@ -138,14 +147,16 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
 
         <div style={{ height: 12 }} />
 
-        {snapshot.items.length === 0 ? (
+        {visibleItems.length === 0 ? (
           <div className="empty-state">
             <p className="section-title">確認対象の明細がありません</p>
-            <p className="section-copy review-copy">新規追加して、必要な明細をここから作成できます。</p>
+            <p className="section-copy review-copy">
+              新規追加して、必要な明細をここから作成できます。
+            </p>
           </div>
         ) : (
           <div className="review-list">
-            {snapshot.items.map((item) => {
+            {visibleItems.map((item) => {
               const isReviewed = reviewedIdSet.has(item.id);
               const editableItem = editableItems.find((entry) => entry.id === item.id);
 
@@ -155,7 +166,9 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
 
               return (
                 <article
-                  className={`review-row-card ${!isReviewed ? "review-row-card-attention" : ""} ${isReviewed ? "review-row-card-reviewed" : ""}`}
+                  className={`review-row-card ${!isReviewed ? "review-row-card-attention" : ""} ${
+                    isReviewed ? "review-row-card-reviewed" : ""
+                  }`}
                   data-testid={`review-row-${item.id}`}
                   key={item.id}
                 >
@@ -173,7 +186,9 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
                     <div className="review-row-top-right">
                       <button
                         aria-pressed={isReviewed}
-                        className={`review-check-toggle ${!isReviewed ? "review-check-toggle-attention" : ""} ${isReviewed ? "review-check-toggle-active" : ""}`}
+                        className={`review-check-toggle ${
+                          !isReviewed ? "review-check-toggle-attention" : ""
+                        } ${isReviewed ? "review-check-toggle-active" : ""}`}
                         onClick={() => {
                           setReviewedIds((current) =>
                             current.includes(item.id)
@@ -194,14 +209,12 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
                   <DraftReviewRowForm
                     baseAmount={editableItem.baseAmount}
                     categories={snapshot.categories}
-                    importGroupId={snapshot.importGroupId}
                     item={item}
                     merchantLabel={merchantLabel}
                     onChange={(field, value) => {
                       setEditableItems((current) =>
                         current.map((entry) => {
                           if (entry.id !== item.id) return entry;
-                          // When user manually edits amount, reset base amount and tax rate
                           if (field === "amount") {
                             return {
                               ...entry,
@@ -210,9 +223,16 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
                               values: { ...entry.values, [field]: value }
                             };
                           }
+
                           return { ...entry, values: { ...entry.values, [field]: value } };
                         })
                       );
+                    }}
+                    onDelete={() => {
+                      setDeletedIds((current) =>
+                        current.includes(item.id) ? current : [...current, item.id]
+                      );
+                      setReviewedIds((current) => current.filter((id) => id !== item.id));
                     }}
                     onTaxRateChange={(rate) => {
                       setEditableItems((current) =>
@@ -239,7 +259,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
           </div>
         )}
 
-        <div className="review-add-row-footer">
+        <div className="review-add-row-footer single-action-row">
           <form action={addDraftRowAction}>
             <input name="importGroupId" type="hidden" value={snapshot.importGroupId} />
             <button className="button button-secondary review-add-row-button" type="submit">
@@ -257,7 +277,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
             : `未確認が ${remainingItems.length} 件あります。すべて確認済みにしてから保存してください。`}
         </p>
         <div style={{ height: 14 }} />
-        {snapshot.items.length === 0 ? (
+        {visibleItems.length === 0 ? (
           <p className="section-copy review-copy">
             確定できる明細がありません。必要に応じて明細を追加してください。
           </p>
@@ -268,12 +288,15 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
               name="draftsPayload"
               type="hidden"
               value={JSON.stringify(
-                editableItems.map((entry) => ({
-                  draftId: entry.id,
-                  ...entry.values
-                }))
+                editableItems
+                  .filter((entry) => !deletedIdSet.has(entry.id))
+                  .map((entry) => ({
+                    draftId: entry.id,
+                    ...entry.values
+                  }))
               )}
             />
+            <input name="deletedDraftIdsPayload" type="hidden" value={JSON.stringify(deletedIds)} />
             <SubmitButton
               disabled={!canConfirm}
               pendingLabel="保存して確定中..."

@@ -1,6 +1,5 @@
 "use client";
 
-import { deleteDraftRowAction } from "@/features/import-review/actions";
 import type { CategoryOption, DraftReviewItem } from "@/lib/finance/types";
 
 export type DraftReviewEditableValues = {
@@ -13,24 +12,24 @@ export type DraftReviewEditableValues = {
 };
 
 type DraftReviewRowFormProps = {
-  importGroupId: string;
   item: DraftReviewItem;
   categories: CategoryOption[];
   merchantLabel: string;
   values: DraftReviewEditableValues;
   onChange: (field: keyof DraftReviewEditableValues, value: string) => void;
+  onDelete: () => void;
   baseAmount: string;
   taxRate: 0 | 8 | 10;
   onTaxRateChange: (rate: 0 | 8 | 10) => void;
 };
 
 export function DraftReviewRowForm({
-  importGroupId,
   item,
   categories,
   merchantLabel,
   values,
   onChange,
+  onDelete,
   taxRate,
   onTaxRateChange,
 }: DraftReviewRowFormProps) {
@@ -96,7 +95,7 @@ export function DraftReviewRowForm({
             type="number"
             value={values.amount}
           />
-          <div className="tax-rate-picker" role="group" aria-label="税率">
+          <div aria-label="税率" className="tax-rate-picker" role="group">
             {([8, 10] as const).map((rate) => (
               <button
                 aria-pressed={taxRate === rate}
@@ -144,17 +143,14 @@ export function DraftReviewRowForm({
       </div>
 
       <div className="review-row-actions review-row-actions-single">
-        <form action={deleteDraftRowAction}>
-          <input name="importGroupId" type="hidden" value={importGroupId} />
-          <input name="draftId" type="hidden" value={item.id} />
-          <button
-            className="button button-secondary compact-button review-row-action-secondary"
-            data-testid={`review-row-${item.id}-delete`}
-            type="submit"
-          >
-            削除
-          </button>
-        </form>
+        <button
+          className="button button-secondary compact-button review-row-action-secondary"
+          data-testid={`review-row-${item.id}-delete`}
+          onClick={onDelete}
+          type="button"
+        >
+          削除
+        </button>
       </div>
     </div>
   );

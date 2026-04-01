@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   DEFAULT_HOUSEHOLD_ACCOUNT_SLUG,
@@ -114,7 +115,7 @@ export async function upsertUserPreferencesPatch(
   }
 }
 
-export async function getCurrentAccountSnapshot(): Promise<CurrentAccountSnapshot | null> {
+const getCurrentAccountSnapshotInternal = cache(async (): Promise<CurrentAccountSnapshot | null> => {
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -141,34 +142,44 @@ export async function getCurrentAccountSnapshot(): Promise<CurrentAccountSnapsho
     currentAccount,
     accounts,
   };
+});
+
+const getAuthenticatedAccountContextInternal = cache(
+  async (): Promise<AuthenticatedAccountContext | null> => {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return null;
+    }
+
+    const accounts = await ensureHouseholdAccounts(supabase, user.id);
+    const preferences = await getUserPreferencesRecord(supabase, user.id);
+    const currentAccount =
+      accounts.find((account) => account.id === preferences?.current_account_id) ??
+      accounts.find((account) => account.slug === DEFAULT_HOUSEHOLD_ACCOUNT_SLUG) ??
+      accounts[0];
+
+    if (!preferences || preferences.current_account_id !== currentAccount.id) {
+      await upsertUserPreferencesPatch(supabase, user.id, {
+        currentAccountId: currentAccount.id,
+      });
+    }
+
+    return {
+      userId: user.id,
+      currentAccount,
+      accounts,
+    };
+  }
+);
+
+export async function getCurrentAccountSnapshot(): Promise<CurrentAccountSnapshot | null> {
+  return getCurrentAccountSnapshotInternal();
 }
 
 export async function getAuthenticatedAccountContext(): Promise<AuthenticatedAccountContext | null> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return null;
-  }
-
-  const accounts = await ensureHouseholdAccounts(supabase, user.id);
-  const preferences = await getUserPreferencesRecord(supabase, user.id);
-  const currentAccount =
-    accounts.find((account) => account.id === preferences?.current_account_id) ??
-    accounts.find((account) => account.slug === DEFAULT_HOUSEHOLD_ACCOUNT_SLUG) ??
-    accounts[0];
-
-  if (!preferences || preferences.current_account_id !== currentAccount.id) {
-    await upsertUserPreferencesPatch(supabase, user.id, {
-      currentAccountId: currentAccount.id,
-    });
-  }
-
-  return {
-    userId: user.id,
-    currentAccount,
-    accounts,
-  };
+  return getAuthenticatedAccountContextInternal();
 }

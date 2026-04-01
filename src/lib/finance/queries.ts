@@ -48,7 +48,10 @@ import type {
   RecurringExpenseCandidateItem,
   ReportMonthOption
 } from "@/lib/finance/types";
+import { unstable_cache } from "next/cache";
+import { createClient } from "@supabase/supabase-js";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getSupabaseConfig } from "@/lib/supabase/config";
 import { formatDisplayDate, formatMonthLabel, monthDateRange, monthStartDateString } from "@/lib/utils/format";
 import { getUpcomingOccurrenceWithinDays } from "@/features/fixed-expenses/schedule";
 
@@ -626,23 +629,70 @@ function createEmptyCategoryBreakdownSnapshot(
   };
 }
 
-export async function listCategories(): Promise<CategoryOption[]> {
-  try {
-    const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
-      .from("categories")
-      .select("id, slug, name, sort_order, is_active")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true });
+const getCachedCategories = unstable_cache(
+  async (): Promise<CategoryOption[]> => {
+    try {
+      const { url, anonKey } = getSupabaseConfig();
+      const supabase = createClient(url, anonKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, slug, name, sort_order, is_active")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
 
-    if (error || !data || data.length === 0) {
+      if (error || !data || data.length === 0) {
+        return INITIAL_CATEGORIES;
+      }
+
+      return mapCategoryOptions(data);
+    } catch {
       return INITIAL_CATEGORIES;
     }
+  },
+  ["finance-categories"],
+  { revalidate: 3600 }
+);
 
-    return mapCategoryOptions(data);
-  } catch {
-    return INITIAL_CATEGORIES;
+function buildMonthlyBudgetOverviewFromRows(params: {
+  date: Date;
+  categories: CategoryOption[];
+  budget: MonthlyBudgetRow | null;
+  budgetCategories: MonthlyBudgetCategoryRow[];
+  spentAmount: number;
+}): MonthlyBudgetOverview {
+  const { date, categories, budget, budgetCategories, spentAmount } = params;
+
+  if (!budget) {
+    return createEmptyBudgetOverview(date);
   }
+
+  const targetMonth = monthStartDateString(date);
+  const selectedCategoryIds = budgetCategories.map((item) => item.category_id);
+  const selectedCategorySet = new Set(selectedCategoryIds);
+  const selectedCategories = categories.filter((category) => selectedCategorySet.has(category.id));
+  const monthlyBudget = budget.budget_amount;
+  const remainingAmount = monthlyBudget - spentAmount;
+  const usageRate = monthlyBudget > 0 ? spentAmount / monthlyBudget : spentAmount > 0 ? 1 : 0;
+
+  return {
+    targetMonth,
+    monthLabel: formatMonthLabel(targetMonth),
+    monthlyBudget,
+    selectedCategoryIds,
+    selectedCategories,
+    spentAmount,
+    remainingAmount,
+    usageRate,
+    isOverBudget: spentAmount > monthlyBudget,
+    hasBudget: true,
+    hasSelectedCategories: selectedCategoryIds.length > 0,
+  };
+}
+
+export async function listCategories(): Promise<CategoryOption[]> {
+  return getCachedCategories();
 }
 
 export async function getMonthlyBudgetOverview(date = new Date()): Promise<MonthlyBudgetOverview> {
@@ -653,8 +703,10 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
       return createEmptyBudgetOverview(date);
     }
 
-    const supabase = await createServerSupabaseClient();
-    const categories = await listCategories();
+    const [supabase, categories] = await Promise.all([
+      createServerSupabaseClient(),
+      listCategories(),
+    ]);
     const targetMonth = monthStartDateString(date);
     const { start, end } = monthDateRange(date);
 
@@ -669,8 +721,6 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
     }
 
     const selectedCategoryIds = (budgetCategories ?? []).map((item) => item.category_id);
-    const selectedCategorySet = new Set(selectedCategoryIds);
-    const selectedCategories = categories.filter((category) => selectedCategorySet.has(category.id));
 
     let spentAmount = 0;
     const spentQuery = supabase
@@ -690,24 +740,13 @@ export async function getMonthlyBudgetOverview(date = new Date()): Promise<Month
       spentAmount = spentRows.reduce((sum, row) => sum + row.amount, 0);
     }
 
-    const monthlyBudget = budget.budget_amount;
-    const remainingAmount = monthlyBudget - spentAmount;
-    const usageRate =
-      monthlyBudget > 0 ? spentAmount / monthlyBudget : spentAmount > 0 ? 1 : 0;
-
-    return {
-      targetMonth,
-      monthLabel: formatMonthLabel(targetMonth),
-      monthlyBudget,
-      selectedCategoryIds,
-      selectedCategories,
+    return buildMonthlyBudgetOverviewFromRows({
+      date,
+      categories,
+      budget,
+      budgetCategories,
       spentAmount,
-      remainingAmount,
-      usageRate,
-      isOverBudget: spentAmount > monthlyBudget,
-      hasBudget: true,
-      hasSelectedCategories: selectedCategoryIds.length > 0
-    };
+    });
   } catch {
     return createEmptyBudgetOverview(date);
   }
@@ -797,8 +836,10 @@ export async function getMonthlyBudgetDetailSnapshot(
       return createFallbackBudgetDetailSnapshot(targetDate);
     }
 
-    const supabase = await createServerSupabaseClient();
-    const categories = await listCategories();
+    const [supabase, categories] = await Promise.all([
+      createServerSupabaseClient(),
+      listCategories(),
+    ]);
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
     const targetMonth = monthStartDateString(targetDate);
     const { start, end } = monthDateRange(targetDate);
@@ -910,8 +951,10 @@ export async function listRecentExpenses(limit = 12): Promise<ExpenseListItem[]>
       return [];
     }
 
-    const supabase = await createServerSupabaseClient();
-    const categories = await listCategories();
+    const [supabase, categories] = await Promise.all([
+      createServerSupabaseClient(),
+      listCategories(),
+    ]);
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
 
     const { data, error } = await supabase
@@ -948,8 +991,10 @@ export async function getExpensesPageSnapshot(limit = 50): Promise<ExpensesPageS
       };
     }
 
-    const supabase = await createServerSupabaseClient();
-    const categories = await listCategories();
+    const [supabase, categories] = await Promise.all([
+      createServerSupabaseClient(),
+      listCategories(),
+    ]);
     const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
 
     const { data: recentRows, error: recentError } = await supabase
@@ -1071,21 +1116,25 @@ export async function getExpensesReportSnapshot(month?: string): Promise<Expense
 export async function getMonthlySummarySnapshot(month?: string): Promise<MonthlySummarySnapshot> {
   try {
     const accountContext = await getAuthenticatedAccountContext();
-    const supabase = await createServerSupabaseClient();
-    const categories = await listCategories();
-    const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
     const targetDate = resolveMonthDate(month);
 
     if (!accountContext) {
       return createEmptyMonthlySummarySnapshot(targetDate, createFallbackAccountSnapshot());
     }
 
+    const [supabase, categories] = await Promise.all([
+      createServerSupabaseClient(),
+      listCategories(),
+    ]);
+    const categoryMap = new Map(categories.map((category) => [category.id, category.name]));
+
     const previousMonthDate = new Date(targetDate.getFullYear(), targetDate.getMonth() - 1, 1);
     const { start, end } = monthDateRange(targetDate);
     const { start: previousStart, end: previousEnd } = monthDateRange(previousMonthDate);
+    const monthlyRowsPromise = ensureMonthlyBudgetRows(supabase, accountContext, start);
 
-    const [budgetOverview, monthResult, previousResult, allDatesResult] = await Promise.all([
-      getMonthlyBudgetOverview(targetDate),
+    const [monthlyRows, monthResult, previousResult, allDatesResult] = await Promise.all([
+      monthlyRowsPromise,
       supabase
         .from("expenses")
         .select("category_id, amount, recurring_expense_id")
@@ -1120,6 +1169,23 @@ export async function getMonthlySummarySnapshot(month?: string): Promise<Monthly
       .filter((row) => row.recurring_expense_id != null)
       .reduce((sum, row) => sum + row.amount, 0);
     const variableAmount = totalAmount - fixedAmount;
+    const trackedCategoryIds = monthlyRows.categories
+      .filter((row) => row.budget_amount > 0)
+      .map((row) => row.category_id);
+    const trackedCategorySet = new Set(trackedCategoryIds);
+    const spentAmountForBudget =
+      trackedCategoryIds.length > 0
+        ? monthRows
+            .filter((row) => trackedCategorySet.has(row.category_id))
+            .reduce((sum, row) => sum + row.amount, 0)
+        : totalAmount;
+    const budgetOverview = buildMonthlyBudgetOverviewFromRows({
+      date: targetDate,
+      categories,
+      budget: monthlyRows.budget,
+      budgetCategories: monthlyRows.categories,
+      spentAmount: spentAmountForBudget,
+    });
 
     const summaryMap = new Map<string, MonthlySummaryCategoryItem>();
 
