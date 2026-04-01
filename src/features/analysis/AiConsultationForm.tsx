@@ -29,12 +29,16 @@ type AiConsultationFormProps = {
 };
 
 function buildBudgetHref(message: ConsultationMessageItem) {
-  return (message.primaryCategoryId
-    ? `/home/budget?focusCategory=${message.primaryCategoryId}#budget-category-${message.primaryCategoryId}`
-    : "/home/budget") as Route;
+  return (
+    message.primaryCategoryId
+      ? `/home/budget?focusCategory=${message.primaryCategoryId}#budget-category-${message.primaryCategoryId}`
+      : "/home/budget"
+  ) as Route;
 }
 
-function toSessionItem(session: ConsultationSessionDetail): ConsultationSessionItem {
+function toSessionItem(
+  session: ConsultationSessionDetail,
+): ConsultationSessionItem {
   return {
     id: session.id,
     startDate: session.startDate,
@@ -58,17 +62,22 @@ export function AiConsultationForm({
   const [isPending, startTransition] = useTransition();
   const [isSavePending, startSaveTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showConsultationForm, setShowConsultationForm] = useState(!initialSession);
+  const [showConsultationForm, setShowConsultationForm] =
+    useState(!initialSession);
   const [startDate, setStartDate] = useState(
     initialSession?.startDate ?? defaultStartDate,
   );
-  const [endDate, setEndDate] = useState(initialSession?.endDate ?? defaultEndDate);
+  const [endDate, setEndDate] = useState(
+    initialSession?.endDate ?? defaultEndDate,
+  );
   const [templateQuestion, setTemplateQuestion] = useState<
     AiConsultationTemplateKey | ""
   >(initialSession?.latestTemplateKey ?? "");
   const [customQuestion, setCustomQuestion] = useState("");
   const [followUpQuestion, setFollowUpQuestion] = useState("");
-  const [session, setSession] = useState<ConsultationSessionDetail | null>(initialSession);
+  const [session, setSession] = useState<ConsultationSessionDetail | null>(
+    initialSession,
+  );
   const [recentSessionItems, setRecentSessionItems] =
     useState<ConsultationSessionItem[]>(recentSessions);
   const [savedCards, setSavedCards] =
@@ -118,10 +127,12 @@ export function AiConsultationForm({
 
   function updateRecentSessions(nextSession: ConsultationSessionDetail) {
     const nextItem = toSessionItem(nextSession);
-    setRecentSessionItems((current) => [
-      nextItem,
-      ...current.filter((item) => item.id !== nextItem.id),
-    ].slice(0, 8));
+    setRecentSessionItems((current) =>
+      [nextItem, ...current.filter((item) => item.id !== nextItem.id)].slice(
+        0,
+        8,
+      ),
+    );
   }
 
   function updateSavedState(messageId: string, isSaved: boolean) {
@@ -170,7 +181,9 @@ export function AiConsultationForm({
   }
 
   function removeSavedCard(messageId: string) {
-    setSavedCards((current) => current.filter((item) => item.messageId !== messageId));
+    setSavedCards((current) =>
+      current.filter((item) => item.messageId !== messageId),
+    );
   }
 
   async function handleToggleSaved(message: ConsultationMessageItem) {
@@ -244,7 +257,9 @@ export function AiConsultationForm({
       {showConsultationForm ? (
         <section className="surface section-card">
           <h2 className="section-title">相談内容</h2>
-          <p className="section-copy">集計期間を選び、テンプレ質問か自由質問で相談できます。</p>
+          <p className="section-copy">
+            集計期間を選び、テンプレ質問か自由質問で相談できます。
+          </p>
           <div style={{ height: 16 }} />
           <form
             className="field-stack"
@@ -316,7 +331,8 @@ export function AiConsultationForm({
                 name="templateQuestion"
                 onChange={(event) =>
                   setTemplateQuestion(
-                    (event.target.value as AiConsultationTemplateKey | "") ?? "",
+                    (event.target.value as AiConsultationTemplateKey | "") ??
+                      "",
                   )
                 }
                 value={templateQuestion}
@@ -350,6 +366,7 @@ export function AiConsultationForm({
             <button className="button" disabled={isPending} type="submit">
               {isPending ? "AIに相談中..." : "AIに相談する"}
             </button>
+            <p className="section-copy">モデル: gpt-4.1-mini</p>
           </form>
         </section>
       ) : null}
@@ -383,14 +400,18 @@ export function AiConsultationForm({
                 message.role === "user" ? (
                   <div className="analysis-message-card" key={message.id}>
                     <p className="eyebrow">QUESTION</p>
-                    <p className="section-copy analysis-message-question">{message.content}</p>
+                    <p className="section-copy analysis-message-question">
+                      {message.content}
+                    </p>
                   </div>
                 ) : (
                   <div className="analysis-message-card" key={message.id}>
                     <div className="section-card-header-row">
                       <div>
                         <p className="eyebrow">ANSWER</p>
-                        <h3 className="section-title analysis-answer-subtitle">AIの回答</h3>
+                        <h3 className="section-title analysis-answer-subtitle">
+                          AIの回答
+                        </h3>
                       </div>
                       <button
                         className="button button-secondary compact-button action-button action-button-secondary analysis-save-button"
@@ -402,7 +423,9 @@ export function AiConsultationForm({
                       </button>
                     </div>
 
-                    <div className="analysis-answer-body">{message.content}</div>
+                    <div className="analysis-answer-body">
+                      {message.content}
+                    </div>
 
                     {message.detectedInsights.length > 0 ? (
                       <div className="analysis-answer-evidence">
@@ -414,7 +437,10 @@ export function AiConsultationForm({
                         </div>
                         <div className="analysis-insight-list">
                           {message.detectedInsights.map((item) => (
-                            <div className="analysis-insight-card" key={item.id}>
+                            <div
+                              className="analysis-insight-card"
+                              key={item.id}
+                            >
                               <div className="analysis-insight-copy">
                                 <p className="list-title">{item.title}</p>
                                 <p className="list-meta">{item.summary}</p>
@@ -441,7 +467,9 @@ export function AiConsultationForm({
                       <div className="analysis-answer-evidence">
                         <div>
                           <p className="eyebrow">EVIDENCE</p>
-                          <h3 className="section-title analysis-answer-subtitle">根拠</h3>
+                          <h3 className="section-title analysis-answer-subtitle">
+                            根拠
+                          </h3>
                         </div>
 
                         <div className="analysis-answer-summary-grid">
@@ -451,12 +479,18 @@ export function AiConsultationForm({
                           </div>
                           <div className="analysis-answer-summary-item">
                             <span className="list-meta">総支出</span>
-                            <strong>{formatCurrency(message.evidenceSummary.totalAmount)}</strong>
+                            <strong>
+                              {formatCurrency(
+                                message.evidenceSummary.totalAmount,
+                              )}
+                            </strong>
                           </div>
                           <div className="analysis-answer-summary-item">
                             <span className="list-meta">前期間との差</span>
                             <strong>
-                              {formatCurrency(message.evidenceSummary.differenceAmount)}
+                              {formatCurrency(
+                                message.evidenceSummary.differenceAmount,
+                              )}
                             </strong>
                           </div>
                           <div className="analysis-answer-summary-item">
@@ -479,14 +513,23 @@ export function AiConsultationForm({
                             </div>
                           </div>
                           {message.evidenceSummary.topCategories.length > 0 ? (
-                            message.evidenceSummary.topCategories.map((item) => (
-                              <div className="list-row" key={item.categoryName}>
-                                <div>
-                                  <p className="list-title">{item.categoryName}</p>
+                            message.evidenceSummary.topCategories.map(
+                              (item) => (
+                                <div
+                                  className="list-row"
+                                  key={item.categoryName}
+                                >
+                                  <div>
+                                    <p className="list-title">
+                                      {item.categoryName}
+                                    </p>
+                                  </div>
+                                  <strong>
+                                    {formatCurrency(item.totalAmount)}
+                                  </strong>
                                 </div>
-                                <strong>{formatCurrency(item.totalAmount)}</strong>
-                              </div>
-                            ))
+                              ),
+                            )
                           ) : (
                             <div className="list-row">
                               <div>
@@ -517,7 +560,9 @@ export function AiConsultationForm({
               <div className="field-stack">
                 <div>
                   <p className="eyebrow">FOLLOW UP</p>
-                  <h3 className="section-title analysis-answer-subtitle">追加で質問する</h3>
+                  <h3 className="section-title analysis-answer-subtitle">
+                    追加で質問する
+                  </h3>
                   <p className="section-copy">
                     同じ期間の相談を続けたいときは、そのまま追加入力できます。
                   </p>
@@ -526,7 +571,9 @@ export function AiConsultationForm({
                 <div className="field">
                   <textarea
                     id="analysis-followup-question"
-                    onChange={(event) => setFollowUpQuestion(event.target.value)}
+                    onChange={(event) =>
+                      setFollowUpQuestion(event.target.value)
+                    }
                     placeholder="気になる点を続けて質問できます。"
                     ref={followUpQuestionRef}
                     rows={3}
@@ -577,7 +624,8 @@ export function AiConsultationForm({
                 <div>
                   <p className="list-title">{item.title}</p>
                   <p className="list-meta">
-                    {item.periodLabel} ・ {formatDisplayDate(item.lastConsultedAt.slice(0, 10))}
+                    {item.periodLabel} ・{" "}
+                    {formatDisplayDate(item.lastConsultedAt.slice(0, 10))}
                   </p>
                 </div>
                 <strong>›</strong>
@@ -603,7 +651,9 @@ export function AiConsultationForm({
                   <p className="list-title">{item.title}</p>
                   <p className="list-meta">
                     {item.periodLabel}
-                    {item.relatedCategoryName ? ` ・ ${item.relatedCategoryName}` : ""}
+                    {item.relatedCategoryName
+                      ? ` ・ ${item.relatedCategoryName}`
+                      : ""}
                   </p>
                   <p className="list-meta">{item.answerSummary}</p>
                 </div>
