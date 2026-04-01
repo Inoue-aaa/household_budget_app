@@ -172,6 +172,15 @@ export type RecurringExpenseLogRow = {
   created_at: string;
 };
 
+export type RecurringExpenseCandidateHideRow = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  recurring_expense_id: string;
+  target_month: string;
+  created_at: string;
+};
+
 export type ConsultationSessionRow = {
   id: string;
   user_id: string;

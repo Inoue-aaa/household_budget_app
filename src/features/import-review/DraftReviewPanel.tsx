@@ -221,7 +221,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
                           const newAmount =
                             rate === 0
                               ? entry.baseAmount
-                              : String(Math.round(Number(entry.baseAmount) * (1 + rate / 100)));
+                              : String(Math.floor(Number(entry.baseAmount) * (1 + rate / 100)));
                           return {
                             ...entry,
                             taxRate: rate,

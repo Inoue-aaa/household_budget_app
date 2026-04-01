@@ -1725,13 +1725,13 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
 
     const supabase = await createServerSupabaseClient();
     const currentMonth = new Date();
-    const { start } = monthDateRange(currentMonth);
 
     const [
       { data: groups, error: groupsError },
       { data: drafts, error: draftsError },
       { data: recurringExpenseRows, error: recurringExpensesError },
       { data: existingRecurringRows, error: existingRecurringRowsError },
+      { data: hiddenRecurringRows, error: hiddenRecurringRowsError },
       categories,
     ] = await Promise.all([
         supabase
@@ -1758,14 +1758,30 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
           .from("expenses")
           .select("recurring_expense_id, occurred_on")
           .eq("account_id", accountContext.currentAccount.id)
-          .gte("occurred_on", start)
+          .gte(
+            "occurred_on",
+            new Date(Date.UTC(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
+              .toISOString()
+              .slice(0, 10),
+          )
           .lte(
             "occurred_on",
-            new Date(Date.UTC(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0))
+            new Date(Date.UTC(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0))
               .toISOString()
               .slice(0, 10),
           )
           .not("recurring_expense_id", "is", null),
+        supabase
+          .from("recurring_expense_candidate_hides")
+          .select("recurring_expense_id, target_month")
+          .eq("account_id", accountContext.currentAccount.id)
+          .gte(
+            "target_month",
+            new Date(Date.UTC(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
+              .toISOString()
+              .slice(0, 10),
+          )
+          .lte("target_month", monthStartDateString(currentMonth)),
         listCategories(),
       ]);
 
@@ -1792,7 +1808,21 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
             typeof row.recurring_expense_id === "string" &&
             typeof row.occurred_on === "string",
         )
-        .map((row) => `${row.recurring_expense_id}:${row.occurred_on.slice(0, 7)}`),
+        .map((row) => `${row.recurring_expense_id}:${row.occurred_on}`),
+    );
+    const hiddenRecurringKeys = new Set(
+      (hiddenRecurringRowsError ? [] : hiddenRecurringRows ?? [])
+        .filter(
+          (
+            row,
+          ): row is {
+            recurring_expense_id: string;
+            target_month: string;
+          } =>
+            typeof row.recurring_expense_id === "string" &&
+            typeof row.target_month === "string",
+        )
+        .map((row) => `${row.recurring_expense_id}:${row.target_month}`),
     );
     const recurringExpenseCandidates: RecurringExpenseCandidateItem[] =
       recurringExpensesError || existingRecurringRowsError || !recurringExpenseRows
@@ -1801,6 +1831,10 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
             .map((item) => {
               const occurrence = getUpcomingOccurrenceWithinDays(item, 7);
               if (!occurrence) {
+                return null;
+              }
+              const targetMonth = monthStartDateString(new Date(`${occurrence.occurredOn}T00:00:00`));
+              if (hiddenRecurringKeys.has(`${item.id}:${targetMonth}`)) {
                 return null;
               }
 
@@ -1813,8 +1847,9 @@ export async function getPendingImportsPageSnapshot(): Promise<PendingImportsPag
                 scheduleDay: item.schedule_day,
                 scheduleTime: item.schedule_time.slice(0, 5),
                 occurredOn: occurrence.occurredOn,
+                targetMonth,
                 memo: item.memo,
-                isAlreadyAdded: existingRecurringKeys.has(`${item.id}:${occurrence.occurredOn.slice(0, 7)}`),
+                isAlreadyAdded: existingRecurringKeys.has(`${item.id}:${occurrence.occurredOn}`),
               };
             })
             .filter((item): item is RecurringExpenseCandidateItem => item != null);

@@ -415,6 +415,7 @@ export type RecurringExpenseCandidateItem = {
   scheduleDay: number;
   scheduleTime: string;
   occurredOn: string;
+  targetMonth: string;
   memo: string | null;
   isAlreadyAdded: boolean;
 };

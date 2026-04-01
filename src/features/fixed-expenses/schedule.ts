@@ -115,34 +115,35 @@ export function getUpcomingOccurrenceWithinDays(
   const currentJst = toJstDate(reference);
   const currentYear = currentJst.getUTCFullYear();
   const currentMonth = currentJst.getUTCMonth() + 1;
-  const startDate = formatDateFromJst(reference);
-  const pastStartDate = formatDateFromJst(
-    new Date(reference.getTime() - days * 24 * 60 * 60 * 1000),
+  const today = formatDateFromJst(reference);
+
+  const isVisibleWithinWindow = (occurredOn: string) => {
+    const visibleUntil = formatDateFromJst(
+      new Date(new Date(`${occurredOn}T00:00:00+09:00`).getTime() + days * 24 * 60 * 60 * 1000),
+    );
+
+    return occurredOn <= today && today <= visibleUntil;
+  };
+
+  const previousMonthParts = addMonths(currentYear, currentMonth, -1);
+  const previousOccurrence = buildScheduledOccurrence(
+    recurringExpense,
+    previousMonthParts.year,
+    previousMonthParts.month,
   );
-  const endDate = formatDateFromJst(new Date(reference.getTime() + days * 24 * 60 * 60 * 1000));
-  const currentMonthStart = formatDateOnly(currentYear, currentMonth, 1);
+  if (
+    isOccurrenceWithinRange(recurringExpense, previousOccurrence.occurredOn) &&
+    isVisibleWithinWindow(previousOccurrence.occurredOn)
+  ) {
+    return previousOccurrence;
+  }
 
   const currentOccurrence = buildScheduledOccurrence(recurringExpense, currentYear, currentMonth);
   if (
     isOccurrenceWithinRange(recurringExpense, currentOccurrence.occurredOn) &&
-    currentOccurrence.occurredOn >= (pastStartDate > currentMonthStart ? pastStartDate : currentMonthStart) &&
-    currentOccurrence.occurredOn <= endDate
+    isVisibleWithinWindow(currentOccurrence.occurredOn)
   ) {
     return currentOccurrence;
-  }
-
-  const nextMonthParts = addMonths(currentYear, currentMonth, 1);
-  const nextOccurrence = buildScheduledOccurrence(
-    recurringExpense,
-    nextMonthParts.year,
-    nextMonthParts.month,
-  );
-  if (
-    isOccurrenceWithinRange(recurringExpense, nextOccurrence.occurredOn) &&
-    nextOccurrence.occurredOn >= startDate &&
-    nextOccurrence.occurredOn <= endDate
-  ) {
-    return nextOccurrence;
   }
 
   return null;

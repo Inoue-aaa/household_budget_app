@@ -4,7 +4,10 @@ import Link from "next/link";
 import { Repeat2 } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
 import { SubmitButton } from "@/components/SubmitButton";
-import { addRecurringExpenseCandidateAction } from "@/features/fixed-expenses/actions";
+import {
+  addRecurringExpenseCandidateAction,
+  hideRecurringExpenseCandidateAction,
+} from "@/features/fixed-expenses/actions";
 import type { RecurringExpenseCandidateItem } from "@/lib/finance/types";
 import { formatCurrency, formatDisplayDate } from "@/lib/utils/format";
 
@@ -16,19 +19,22 @@ export function RecurringExpenseCandidatesSection({
   return (
     <SectionCard
       title="固定費 / サブスク候補"
-      description="登録済みの固定費を、今月の支出としてここから追加できます。"
+      description="登録済みの固定費を、指定日から1週間の候補としてここから追加できます。"
     >
       {items.length === 0 ? (
         <div className="empty-state">
           <p className="section-title">今週の候補はありません</p>
           <p className="section-copy">
-            今日から1週間以内に追加する固定費 / サブスクがあると、ここに表示されます。
+            指定日から1週間以内に追加できる固定費 / サブスクがあると、ここに表示されます。
           </p>
         </div>
       ) : (
         <div className="list">
           {items.map((item) => (
-            <section className="expense-card recurring-candidate-card" key={`${item.recurringExpenseId}:${item.occurredOn}`}>
+            <section
+              className="expense-card recurring-candidate-card"
+              key={`${item.recurringExpenseId}:${item.occurredOn}`}
+            >
               <div className="expense-card-main">
                 <div className="expense-card-overline">
                   <span className={`pill ${item.isAlreadyAdded ? "" : "pill-accent"}`}>
@@ -38,7 +44,10 @@ export function RecurringExpenseCandidatesSection({
 
                 <div className="section-card-link-header">
                   <div className="section-card-link-title">
-                    <span className="section-card-link-icon section-card-link-icon-soft" aria-hidden="true">
+                    <span
+                      aria-hidden="true"
+                      className="section-card-link-icon section-card-link-icon-soft"
+                    >
                       <Repeat2 size={18} />
                     </span>
                     <div>
@@ -51,7 +60,9 @@ export function RecurringExpenseCandidatesSection({
                   <strong className="expense-amount">{formatCurrency(item.amount)}</strong>
                 </div>
 
-                {item.memo ? <p className="section-copy recurring-candidate-note">{item.memo}</p> : null}
+                {item.memo ? (
+                  <p className="section-copy recurring-candidate-note">{item.memo}</p>
+                ) : null}
 
                 <div className="action-button-row action-button-row-centered expense-card-action-row">
                   <Link
@@ -60,6 +71,16 @@ export function RecurringExpenseCandidatesSection({
                   >
                     修正
                   </Link>
+                  <form action={hideRecurringExpenseCandidateAction}>
+                    <input name="recurringExpenseId" type="hidden" value={item.recurringExpenseId} />
+                    <input name="targetMonth" type="hidden" value={item.targetMonth} />
+                    <SubmitButton
+                      className="button compact-button action-button action-button-secondary"
+                      pendingLabel="更新中..."
+                    >
+                      来月まで非表示
+                    </SubmitButton>
+                  </form>
                   <form action={addRecurringExpenseCandidateAction}>
                     <input name="recurringExpenseId" type="hidden" value={item.recurringExpenseId} />
                     <input name="occurredOn" type="hidden" value={item.occurredOn} />

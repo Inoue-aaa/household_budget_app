@@ -284,6 +284,11 @@ const addRecurringExpenseCandidateSchema = z.object({
   occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
+const hideRecurringExpenseCandidateSchema = z.object({
+  recurringExpenseId: z.string().uuid(),
+  targetMonth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
 export async function deleteRecurringExpenseAction(formData: FormData) {
   const parsed = deleteRecurringExpenseSchema.safeParse({
     recurringExpenseId: formData.get("recurringExpenseId"),
@@ -409,4 +414,37 @@ export async function addRecurringExpenseCandidateAction(formData: FormData) {
   }
 
   redirect(registerPath("fixed-expense-added"));
+}
+
+export async function hideRecurringExpenseCandidateAction(formData: FormData) {
+  const parsed = hideRecurringExpenseCandidateSchema.safeParse({
+    recurringExpenseId: formData.get("recurringExpenseId"),
+    targetMonth: formData.get("targetMonth"),
+  });
+
+  if (!parsed.success) {
+    redirect(registerPath("fixed-expense-add-error"));
+  }
+
+  const accountContext = await getAuthenticatedAccountContext();
+  if (!accountContext) {
+    redirect("/login");
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.from("recurring_expense_candidate_hides").upsert(
+    {
+      user_id: accountContext.userId,
+      account_id: accountContext.currentAccount.id,
+      recurring_expense_id: parsed.data.recurringExpenseId,
+      target_month: parsed.data.targetMonth,
+    },
+    { onConflict: "account_id,recurring_expense_id,target_month" },
+  );
+
+  if (error) {
+    redirect(registerPath("fixed-expense-add-error"));
+  }
+
+  redirect(registerPath("fixed-expense-hidden"));
 }
