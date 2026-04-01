@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { BarChart3, ChartColumnBig, NotebookPen } from "lucide-react";
+import { ChartColumnBig, NotebookPen } from "lucide-react";
 import { ExpensesStatusBanner } from "./ExpensesStatusBanner";
 import { ImportGroupDeleteForm } from "./ImportGroupDeleteForm";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -59,27 +59,10 @@ export default async function ExpensesPage({
         </div>
       </section>
 
-      <Link className="surface section-card section-card-link" href="/expenses/reports">
+      <Link className="surface section-card section-card-link" href="/expenses/summary" prefetch>
         <div className="section-card-link-header">
           <div className="section-card-link-title">
             <span className="section-card-link-icon" aria-hidden="true">
-              <BarChart3 size={18} />
-            </span>
-            <h2 className="section-title">日次レポート</h2>
-          </div>
-          <span aria-hidden="true" className="section-card-link-arrow">
-            ›
-          </span>
-        </div>
-        <p className="section-copy">
-          表示月の日別支出を確認できます。各日から詳細へ進み、個別の修正も行えます。
-        </p>
-      </Link>
-
-      <Link className="surface section-card section-card-link" href="/expenses/summary">
-        <div className="section-card-link-header">
-          <div className="section-card-link-title">
-            <span className="section-card-link-icon section-card-link-icon-soft" aria-hidden="true">
               <ChartColumnBig size={18} />
             </span>
             <h2 className="section-title">月次サマリー</h2>
@@ -93,20 +76,23 @@ export default async function ExpensesPage({
         </p>
       </Link>
 
-      <Link className="surface section-card section-card-link" href="/expenses/history">
+      <Link className="surface section-card section-card-link" href="/expenses/reports" prefetch>
         <div className="section-card-link-header">
           <div className="section-card-link-title">
-            <span className="section-card-link-icon section-card-link-icon-soft" aria-hidden="true">
+            <span
+              className="section-card-link-icon section-card-link-icon-soft"
+              aria-hidden="true"
+            >
               <NotebookPen size={18} />
             </span>
-            <h2 className="section-title">登録履歴</h2>
+            <h2 className="section-title">日次レポート</h2>
           </div>
           <span aria-hidden="true" className="section-card-link-arrow">
             ›
           </span>
         </div>
         <p className="section-copy">
-          登録済み支出を日ごとに振り返れます。日付を起点に、その日の詳細へ移動できます。
+          表示月の日別支出を確認できます。各日から詳細へ進み、個別の修正も行えます。
         </p>
       </Link>
 
@@ -119,7 +105,7 @@ export default async function ExpensesPage({
             <div className="empty-state">
               <p className="section-title">まだ支出は登録されていません</p>
               <p className="section-copy">
-                手入力や review の保存を行うと、ここに登録履歴として表示されます。
+                手入力や review の確認画面から登録すると、ここに最近の履歴として表示されます。
               </p>
               <div style={{ height: 14 }} />
               <Link
@@ -134,7 +120,7 @@ export default async function ExpensesPage({
               const editHref = (
                 group.occurredOn != null
                   ? `/expenses/day/${group.occurredOn}`
-                  : "/expenses/history"
+                  : "/expenses/reports"
               ) as Route;
 
               return (
@@ -159,7 +145,7 @@ export default async function ExpensesPage({
                           {formatImportGroupHeading(group.sourceType, group.recurringExpenseId)}
                         </p>
                         <p className="list-title">
-                          {group.merchantName ?? "店舗名なし"}
+                          {group.merchantName ?? "名称なし"}
                         </p>
                         <p className="list-meta">
                           {formatImportGroupMetaLabel(group.sourceType, group.recurringExpenseId)}:{" "}
@@ -206,9 +192,7 @@ export default async function ExpensesPage({
                     </div>
 
                     <div className="action-button-row action-button-row-centered expense-card-action-row">
-                      <ImportGroupDeleteForm
-                        importGroupId={group.importGroupId}
-                      />
+                      <ImportGroupDeleteForm importGroupId={group.importGroupId} />
                       <Link
                         className="button compact-button action-button action-button-primary"
                         href={editHref}

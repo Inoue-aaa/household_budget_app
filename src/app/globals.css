@@ -2992,6 +2992,26 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.analysis-period-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.month-year-picker-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analysis-period-separator {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .analysis-answer-card {
   margin-top: 4px;
 }
@@ -3132,6 +3152,15 @@ button {
 
 @media (max-width: 640px) {
   .analysis-period-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .analysis-period-inline {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .month-year-picker-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

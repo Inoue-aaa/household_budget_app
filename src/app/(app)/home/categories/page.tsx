@@ -1,15 +1,18 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { BackButton } from "@/components/BackButton";
+import { MonthYearPickerFields } from "@/components/MonthYearPickerFields";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { ExpenseDeleteForm } from "@/features/expenses/ExpenseDeleteForm";
 import { getCategoryBreakdownSnapshot } from "@/lib/finance/queries";
-import { formatCurrency, formatDisplayDate } from "@/lib/utils/format";
+import { formatCurrency, formatDisplayDate, resolveSearchMonth } from "@/lib/utils/format";
 
 type CategoryBreakdownPageProps = {
   searchParams?: Promise<{
     month?: string;
+    year?: string;
+    monthNumber?: string;
     category?: string;
     sort?: string;
   }>;
@@ -36,7 +39,7 @@ export default async function CategoryBreakdownPage({
   const params = searchParams ? await searchParams : undefined;
   const selectedSort = resolveSort(params?.sort);
   const snapshot = await getCategoryBreakdownSnapshot(
-    params?.month,
+    resolveSearchMonth(params),
     params?.category ?? null,
     selectedSort
   );
@@ -47,16 +50,10 @@ export default async function CategoryBreakdownPage({
 
       <SectionCard title="表示月">
         <form className="field-stack" method="get">
-          <div className="field">
-            <label htmlFor="month">年月</label>
-            <select defaultValue={snapshot.targetMonth} id="month" name="month">
-              {snapshot.availableMonths.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <MonthYearPickerFields
+            availableMonths={snapshot.availableMonths}
+            targetMonth={snapshot.targetMonth}
+          />
           {snapshot.selectedCategoryId ? (
             <input name="category" type="hidden" value={snapshot.selectedCategoryId} />
           ) : null}

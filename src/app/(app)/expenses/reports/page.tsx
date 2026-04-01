@@ -1,13 +1,16 @@
 import { BackButton } from "@/components/BackButton";
+import { MonthYearPickerFields } from "@/components/MonthYearPickerFields";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { DailySpendingChart } from "@/features/expenses/DailySpendingChart";
 import { getExpensesReportSnapshot } from "@/lib/finance/queries";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency, resolveSearchMonth } from "@/lib/utils/format";
 
 type ExpensesReportPageProps = {
   searchParams?: Promise<{
     month?: string;
+    year?: string;
+    monthNumber?: string;
   }>;
 };
 
@@ -15,7 +18,7 @@ export default async function ExpensesReportPage({
   searchParams,
 }: ExpensesReportPageProps) {
   const params = searchParams ? await searchParams : undefined;
-  const snapshot = await getExpensesReportSnapshot(params?.month);
+  const snapshot = await getExpensesReportSnapshot(resolveSearchMonth(params));
 
   return (
     <div className="page-stack">
@@ -30,16 +33,10 @@ export default async function ExpensesReportPage({
         description="年月を切り替えて、その月の日別支出を確認できます。"
       >
         <form className="field-stack" method="get">
-          <div className="field">
-            <label htmlFor="month">年月</label>
-            <select defaultValue={snapshot.targetMonth} id="month" name="month">
-              {snapshot.availableMonths.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <MonthYearPickerFields
+            availableMonths={snapshot.availableMonths}
+            targetMonth={snapshot.targetMonth}
+          />
           <button className="button button-secondary" type="submit">
             この月を表示
           </button>

@@ -21,8 +21,9 @@ type DailyExpensesPageProps = {
 };
 
 function addDays(date: string, diff: number) {
-  const base = new Date(`${date}T00:00:00`);
-  base.setDate(base.getDate() + diff);
+  const [year, month, day] = date.split("-").map(Number);
+  const base = new Date(Date.UTC(year, month - 1, day));
+  base.setUTCDate(base.getUTCDate() + diff);
   return base.toISOString().slice(0, 10);
 }
 

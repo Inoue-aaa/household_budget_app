@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { BackButton } from "@/components/BackButton";
+import { MonthYearPickerFields } from "@/components/MonthYearPickerFields";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { getMonthlySummarySnapshot } from "@/lib/finance/queries";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency, resolveSearchMonth } from "@/lib/utils/format";
 
 type MonthlySummaryPageProps = {
   searchParams?: Promise<{
     month?: string;
+    year?: string;
+    monthNumber?: string;
   }>;
 };
 
@@ -35,7 +38,7 @@ export default async function MonthlySummaryPage({
   searchParams,
 }: MonthlySummaryPageProps) {
   const params = searchParams ? await searchParams : undefined;
-  const snapshot = await getMonthlySummarySnapshot(params?.month);
+  const snapshot = await getMonthlySummarySnapshot(resolveSearchMonth(params));
   const usageRate = clampRate(snapshot.usageRate);
   const hasBudget = snapshot.budgetAmount != null;
 
@@ -57,16 +60,10 @@ export default async function MonthlySummaryPage({
 
       <SectionCard title="表示月">
         <form className="field-stack budget-inline-form" method="get">
-          <div className="field">
-            <label htmlFor="month">年月</label>
-            <select defaultValue={snapshot.targetMonth} id="month" name="month">
-              {snapshot.availableMonths.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <MonthYearPickerFields
+            availableMonths={snapshot.availableMonths}
+            targetMonth={snapshot.targetMonth}
+          />
           <button className="button button-secondary" type="submit">
             この月を表示
           </button>

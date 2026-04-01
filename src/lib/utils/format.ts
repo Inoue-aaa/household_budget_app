@@ -109,3 +109,24 @@ export function monthDateRange(date: Date) {
 export function monthStartDateString(date: Date) {
   return monthDateRange(date).start;
 }
+
+export function resolveSearchMonth(params?: {
+  month?: string;
+  year?: string;
+  monthNumber?: string;
+}) {
+  if (params?.month && /^\d{4}-\d{2}$/.test(params.month)) {
+    return params.month;
+  }
+
+  if (
+    params?.year &&
+    /^\d{4}$/.test(params.year) &&
+    params?.monthNumber &&
+    /^(0[1-9]|1[0-2])$/.test(params.monthNumber)
+  ) {
+    return `${params.year}-${params.monthNumber}`;
+  }
+
+  return undefined;
+}

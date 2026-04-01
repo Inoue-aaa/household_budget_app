@@ -58,6 +58,7 @@ export function AiConsultationForm({
   const [isPending, startTransition] = useTransition();
   const [isSavePending, startSaveTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showConsultationForm, setShowConsultationForm] = useState(!initialSession);
   const [startDate, setStartDate] = useState(
     initialSession?.startDate ?? defaultStartDate,
   );
@@ -86,6 +87,7 @@ export function AiConsultationForm({
       ),
     [suggested.groups],
   );
+  const hasCustomQuestion = customQuestion.trim().length > 0;
 
   useEffect(() => {
     setStartDate(initialSession?.startDate ?? defaultStartDate);
@@ -94,6 +96,7 @@ export function AiConsultationForm({
     setCustomQuestion("");
     setFollowUpQuestion("");
     setSession(initialSession);
+    setShowConsultationForm(!initialSession);
     setRecentSessionItems(recentSessions);
     setSavedCards(initialSavedCards);
     setErrorMessage(null);
@@ -226,6 +229,7 @@ export function AiConsultationForm({
 
       if (actionResult.status === "success") {
         setSession(actionResult.session);
+        setShowConsultationForm(false);
         updateRecentSessions(actionResult.session);
         params.onSuccess?.();
         return;
@@ -237,114 +241,118 @@ export function AiConsultationForm({
 
   return (
     <div className="field-stack analysis-consultation-stack">
-      <section className="surface section-card">
-        <h2 className="section-title">相談内容</h2>
-        <p className="section-copy">開始日と終了日を選び、テンプレ質問か自由質問で相談できます。</p>
-        <div style={{ height: 16 }} />
-      <form
-        className="field-stack"
-        onSubmit={(event) => {
-          event.preventDefault();
-          submitConsultation({
-            sessionId: null,
-            startDate,
-            endDate,
-            templateQuestion,
-            customQuestion,
-            onSuccess: () => {
-              setCustomQuestion("");
-            },
-          });
-        }}
-      >
-        <div className="analysis-period-grid">
-          <div className="field">
-            <label htmlFor="analysis-start-date">開始日</label>
-            <input
-              id="analysis-start-date"
-              name="startDate"
-              onChange={(event) => setStartDate(event.target.value)}
-              type="date"
-              value={startDate}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="analysis-end-date">終了日</label>
-            <input
-              id="analysis-end-date"
-              name="endDate"
-              onChange={(event) => setEndDate(event.target.value)}
-              type="date"
-              value={endDate}
-            />
-          </div>
-        </div>
-
-        <div className="surface section-card ai-consult-recommend-card">
-          <div className="field-stack">
-            <div>
-              <h2 className="section-title">{suggested.heading}</h2>
-              <p className="section-copy">
-                期間に合わせて、使いやすい質問を先に選べます。
-              </p>
-            </div>
-
-            <div className="ai-template-chip-list">
-              {suggestedOptions.map((option) => (
-                <button
-                  className="button button-secondary compact-button ai-template-chip"
-                  key={option.value}
-                  onClick={() => setTemplateQuestion(option.value)}
-                  type="button"
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="field">
-          <label htmlFor="analysis-template-question">テンプレ質問</label>
-          <select
-            id="analysis-template-question"
-            name="templateQuestion"
-            onChange={(event) =>
-              setTemplateQuestion(
-                (event.target.value as AiConsultationTemplateKey | "") ?? "",
-              )
-            }
-            value={templateQuestion}
+      {showConsultationForm ? (
+        <section className="surface section-card">
+          <h2 className="section-title">相談内容</h2>
+          <p className="section-copy">集計期間を選び、テンプレ質問か自由質問で相談できます。</p>
+          <div style={{ height: 16 }} />
+          <form
+            className="field-stack"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitConsultation({
+                sessionId: null,
+                startDate,
+                endDate,
+                templateQuestion,
+                customQuestion,
+                onSuccess: () => {
+                  setCustomQuestion("");
+                },
+              });
+            }}
           >
-            <option value="">選択してください</option>
-            {CONSULTATION_TEMPLATE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div className="field">
+              <label htmlFor="analysis-start-date">集計期間</label>
+              <div className="analysis-period-inline">
+                <input
+                  id="analysis-start-date"
+                  name="startDate"
+                  onChange={(event) => setStartDate(event.target.value)}
+                  type="date"
+                  value={startDate}
+                />
+                <span className="analysis-period-separator">〜</span>
+                <input
+                  id="analysis-end-date"
+                  name="endDate"
+                  onChange={(event) => setEndDate(event.target.value)}
+                  type="date"
+                  value={endDate}
+                />
+              </div>
+            </div>
 
-        <div className="field">
-          <label htmlFor="analysis-custom-question">自由質問</label>
-          <textarea
-            id="analysis-custom-question"
-            name="customQuestion"
-            onChange={(event) => setCustomQuestion(event.target.value)}
-            placeholder="気になることがあれば、自由に入力できます。"
-            ref={customQuestionRef}
-            rows={4}
-            value={customQuestion}
-          />
-        </div>
+            <div className="surface section-card ai-consult-recommend-card">
+              <div className="field-stack">
+                <div>
+                  <h2 className="section-title">{suggested.heading}</h2>
+                  <p className="section-copy">
+                    期間に合わせて、使いやすい質問を先に選べます。
+                  </p>
+                </div>
 
-        {errorMessage ? <p className="form-message form-message-error">{errorMessage}</p> : null}
+                <div className="ai-template-chip-list">
+                  {suggestedOptions.map((option) => (
+                    <button
+                      className="button button-secondary compact-button ai-template-chip"
+                      disabled={hasCustomQuestion}
+                      key={option.value}
+                      onClick={() => setTemplateQuestion(option.value)}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-        <button className="button" disabled={isPending} type="submit">
-          {isPending ? "AIに相談中..." : session ? "新しい内容で相談する" : "AIに相談する"}
-        </button>
-      </form>
-      </section>
+            <div className="field">
+              <label htmlFor="analysis-template-question">テンプレ質問</label>
+              <select
+                disabled={hasCustomQuestion}
+                id="analysis-template-question"
+                name="templateQuestion"
+                onChange={(event) =>
+                  setTemplateQuestion(
+                    (event.target.value as AiConsultationTemplateKey | "") ?? "",
+                  )
+                }
+                value={templateQuestion}
+              >
+                <option value="">選択してください</option>
+                {CONSULTATION_TEMPLATE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="analysis-custom-question">自由質問</label>
+              <textarea
+                id="analysis-custom-question"
+                name="customQuestion"
+                onChange={(event) => setCustomQuestion(event.target.value)}
+                placeholder="気になることがあれば、自由に入力できます。"
+                ref={customQuestionRef}
+                rows={4}
+                value={customQuestion}
+              />
+            </div>
+
+            {errorMessage ? (
+              <p className="form-message form-message-error">{errorMessage}</p>
+            ) : null}
+
+            <button className="button" disabled={isPending} type="submit">
+              {isPending ? "AIに相談中..." : "AIに相談する"}
+            </button>
+          </form>
+        </section>
+      ) : null}
 
       {session ? (
         <div className="surface section-card analysis-answer-card">
@@ -357,7 +365,13 @@ export function AiConsultationForm({
               </div>
               <button
                 className="button button-secondary compact-button action-button action-button-secondary"
-                onClick={focusQuestionInput}
+                onClick={() => {
+                  setShowConsultationForm(true);
+                  setCustomQuestion("");
+                  setTemplateQuestion("");
+                  setErrorMessage(null);
+                  setTimeout(() => focusQuestionInput(), 0);
+                }}
                 type="button"
               >
                 新しい相談
