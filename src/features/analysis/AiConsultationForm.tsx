@@ -2,7 +2,7 @@
 
 import type { Route } from "next";
 import Link from "next/link";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   submitAiConsultationAction,
   toggleSavedConsultationCardAction,
@@ -86,6 +86,24 @@ export function AiConsultationForm({
       ),
     [suggested.groups],
   );
+
+  useEffect(() => {
+    setStartDate(initialSession?.startDate ?? defaultStartDate);
+    setEndDate(initialSession?.endDate ?? defaultEndDate);
+    setTemplateQuestion(initialSession?.latestTemplateKey ?? "");
+    setCustomQuestion("");
+    setFollowUpQuestion("");
+    setSession(initialSession);
+    setRecentSessionItems(recentSessions);
+    setSavedCards(initialSavedCards);
+    setErrorMessage(null);
+  }, [
+    defaultEndDate,
+    defaultStartDate,
+    initialSavedCards,
+    initialSession,
+    recentSessions,
+  ]);
 
   function focusQuestionInput() {
     customQuestionRef.current?.focus();
