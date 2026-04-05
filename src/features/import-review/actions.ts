@@ -74,7 +74,8 @@ const updateDraftSchema = z.object({
 });
 
 const bulkDraftItemSchema = z.object({
-  draftId: z.string().uuid(),
+  draftId: z.string().uuid().nullable().optional(),
+  lineIndex: z.coerce.number().int().min(0),
   title: z.string().trim().min(1).max(120),
   occurredOn: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/),
   merchantName: z.string().trim().max(120).optional(),
@@ -477,7 +478,7 @@ export async function confirmDraftsAction(formData: FormData) {
 
   const { data: importGroup } = await supabase
     .from("import_groups")
-    .select("id")
+    .select("id, occurred_on, source_type, title, account_id")
     .eq("id", importGroupId)
     .eq("account_id", accountContext.currentAccount.id)
     .maybeSingle();
@@ -508,26 +509,57 @@ export async function confirmDraftsAction(formData: FormData) {
         redirect(reviewPath(importGroupId, "confirm-error"));
       }
 
-      const { error: updateError } = await supabase
-        .from("expense_drafts")
-        .update({
-          occurred_on: item.occurredOn,
-          merchant_name: item.merchantName || null,
+      const draftPayload = {
+        occurred_on: item.occurredOn,
+        merchant_name: item.merchantName || null,
+        title: item.title,
+        amount: normalizedAmount,
+        suggested_category_id: item.categoryId,
+        note: item.note || null,
+        needs_review: deriveNeedsReview({
           title: item.title,
           amount: normalizedAmount,
-          suggested_category_id: item.categoryId,
-          note: item.note || null,
-          needs_review: deriveNeedsReview({
-            title: item.title,
-            amount: normalizedAmount,
-            categoryId: item.categoryId
-          })
+          categoryId: item.categoryId
         })
-        .eq("id", item.draftId)
-        .eq("account_id", accountContext.currentAccount.id)
-        .eq("import_group_id", importGroupId);
+      };
 
-      if (updateError) {
+      if (item.draftId) {
+        const { error: updateError } = await supabase
+          .from("expense_drafts")
+          .update({
+            ...draftPayload,
+            line_index: item.lineIndex
+          })
+          .eq("id", item.draftId)
+          .eq("account_id", accountContext.currentAccount.id)
+          .eq("import_group_id", importGroupId);
+
+        if (updateError) {
+          redirect(reviewPath(importGroupId, "confirm-error"));
+        }
+
+        continue;
+      }
+
+      const { error: insertError } = await supabase.from("expense_drafts").insert({
+        user_id: accountContext.userId,
+        account_id: importGroup.account_id ?? accountContext.currentAccount.id,
+        import_group_id: importGroupId,
+        line_index: item.lineIndex,
+        occurred_on: item.occurredOn || importGroup.occurred_on,
+        merchant_name: item.merchantName || importGroup.title || null,
+        title: item.title,
+        amount: normalizedAmount,
+        suggested_category_id: item.categoryId,
+        note: item.note || null,
+        source_type: importGroup.source_type ?? "receipt",
+        needs_review: draftPayload.needs_review,
+        raw_payload: {
+          kind: "manual-review-add"
+        }
+      });
+
+      if (insertError) {
         redirect(reviewPath(importGroupId, "confirm-error"));
       }
     }

@@ -488,7 +488,7 @@ export function postprocessReceiptAiResult(
   });
 
   if (uniqueProducts.length > 0) {
-    return uniqueProducts.slice(0, 8).map((row, index) => {
+    return uniqueProducts.slice(0, 30).map((row, index) => {
       const effectiveAmount = row.finalAmount ?? row.amount;
       const autoMemo = buildDiscountMemo({
         originalAmount: row.originalAmount,

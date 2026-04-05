@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { SubmitButton } from "@/components/SubmitButton";
 import {
-  addDraftRowAction,
   confirmDraftsAction,
   discardImportGroupAction
 } from "@/features/import-review/actions";
@@ -12,7 +11,7 @@ import {
   DraftReviewRowForm,
   type DraftReviewEditableValues
 } from "@/features/import-review/DraftReviewRowForm";
-import type { DraftReviewSnapshot, SourceType } from "@/lib/finance/types";
+import type { DraftReviewItem, DraftReviewSnapshot, SourceType } from "@/lib/finance/types";
 import { formatDisplayDate, formatSourceLabel } from "@/lib/utils/format";
 
 type DraftReviewPanelProps = {
@@ -21,6 +20,8 @@ type DraftReviewPanelProps = {
 
 type EditableDraftItem = {
   id: string;
+  draftId: string | null;
+  lineIndex: number;
   values: DraftReviewEditableValues;
   baseAmount: string;
   taxRate: 0 | 8 | 10;
@@ -51,6 +52,8 @@ function createEditableItems(snapshot: DraftReviewSnapshot): EditableDraftItem[]
     const amount = item.amount == null ? "" : String(item.amount);
     return {
       id: item.id,
+      draftId: item.id,
+      lineIndex: item.lineIndex,
       baseAmount: amount,
       taxRate: 0,
       values: {
@@ -65,6 +68,49 @@ function createEditableItems(snapshot: DraftReviewSnapshot): EditableDraftItem[]
   });
 }
 
+function createNewEditableItem(snapshot: DraftReviewSnapshot, lineIndex: number): EditableDraftItem {
+  return {
+    id: `new-${crypto.randomUUID()}`,
+    draftId: null,
+    lineIndex,
+    baseAmount: "",
+    taxRate: 0,
+    values: {
+      occurredOn: normalizeEditableOccurredOn(snapshot.occurredOn),
+      merchantName: snapshot.title ?? "",
+      title: "",
+      amount: "",
+      categoryId: snapshot.categories[0]?.id ?? "",
+      note: ""
+    }
+  };
+}
+
+function buildDraftReviewItem(
+  entry: EditableDraftItem,
+  snapshot: DraftReviewSnapshot
+): DraftReviewItem {
+  return {
+    id: entry.id,
+    importGroupId: snapshot.importGroupId,
+    lineIndex: entry.lineIndex,
+    title: entry.values.title,
+    amount: entry.values.amount ? Number(entry.values.amount) : null,
+    note: entry.values.note || null,
+    merchantName: entry.values.merchantName || null,
+    occurredOn: entry.values.occurredOn || null,
+    categoryId: entry.values.categoryId || null,
+    categoryName:
+      snapshot.categories.find((category) => category.id === entry.values.categoryId)?.name ?? null,
+    sourceType: snapshot.sourceType,
+    needsReview:
+      !entry.values.title.trim() ||
+      !entry.values.amount.trim() ||
+      Number(entry.values.amount) <= 0 ||
+      !entry.values.categoryId
+  };
+}
+
 export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
   const [reviewedIds, setReviewedIds] = useState<string[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
@@ -77,8 +123,19 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
   const deletedIdSet = useMemo(() => new Set(deletedIds), [deletedIds]);
 
   const visibleItems = useMemo(
-    () => snapshot.items.filter((item) => !deletedIdSet.has(item.id)),
-    [deletedIdSet, snapshot.items]
+    () =>
+      editableItems
+        .filter((item) => !deletedIdSet.has(item.id))
+        .map((item, index) =>
+          buildDraftReviewItem(
+            {
+              ...item,
+              lineIndex: index
+            },
+            snapshot
+          )
+        ),
+    [deletedIdSet, editableItems, snapshot]
   );
 
   const remainingItems = useMemo(
@@ -96,7 +153,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
             <p className="eyebrow">Review</p>
             <h1 className="screen-title">確認画面</h1>
             <p className="screen-description review-copy">
-              必要な項目を整えてから、各明細を確認済みにしてください。
+              自動で取り込まれた内容を確認してから、支出として登録します。
             </p>
           </div>
           <span className="pill pill-accent">{formatSourceLabel(snapshot.sourceType)}</span>
@@ -114,22 +171,21 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
         </div>
 
         <p className="section-copy review-copy">
-          取り込み: {snapshot.title ?? "未設定"}
+          読み込み元: {snapshot.title ?? "未設定"}
           {snapshot.occurredOn ? ` ・ ${formatDisplayDate(snapshot.occurredOn)}` : ""}
         </p>
       </section>
 
       <section className="surface section-card review-surface review-surface-tight review-surface-wide">
-        <h2 className="section-title">未確認の明細</h2>
+        <h2 className="section-title">未確認の支出</h2>
         {remainingItems.length === 0 ? (
           <p className="section-copy review-copy">
-            すべての明細が確認済みです。このまま保存して確定できます。
+            すべての支出を確認済みにしました。このまま登録へ進めます。
           </p>
         ) : (
           <div className="attention-item attention-item-compact">
             <p className="section-copy review-copy">
-              未確認の明細が {remainingItems.length} 件あります。リストから順にチェックしてから、
-              まとめて保存してください。
+              未確認の支出が {remainingItems.length} 件あります。リストを確認してから、まとめて登録してください。
             </p>
           </div>
         )}
@@ -138,9 +194,9 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
       <section className="surface section-card review-surface review-surface-tight review-surface-wide">
         <div className="review-section-header">
           <div>
-            <h2 className="section-title">明細一覧</h2>
+            <h2 className="section-title">支出一覧</h2>
             <p className="section-copy review-copy">
-              必要な項目を整えてから、各明細を確認済みにしてください。
+              自動で取り込まれた内容を確認してから、支出として登録します。
             </p>
           </div>
         </div>
@@ -149,9 +205,9 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
 
         {visibleItems.length === 0 ? (
           <div className="empty-state">
-            <p className="section-title">確認対象の明細がありません</p>
+            <p className="section-title">確認対象の支出がありません</p>
             <p className="section-copy review-copy">
-              新規追加して、必要な明細をここから作成できます。
+              新規追加して、必要な支出をここから登録できます。
             </p>
           </div>
         ) : (
@@ -174,7 +230,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
                 >
                   <div className="review-row-top">
                     <div>
-                      <p className="list-title">明細 {item.lineIndex + 1}</p>
+                      <p className="list-title">支出 {item.lineIndex + 1}</p>
                       <p className="list-meta">
                         {editableItem.values.merchantName ? `${editableItem.values.merchantName} ・ ` : ""}
                         {editableItem.values.occurredOn
@@ -201,7 +257,7 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
                         <span aria-hidden="true" className="review-check-box">
                           {isReviewed ? "✓" : ""}
                         </span>
-                        <span>{isReviewed ? "確認済み" : "確認が必要"}</span>
+                        <span>{isReviewed ? "確認済み" : "確認する"}</span>
                       </button>
                     </div>
                   </div>
@@ -260,26 +316,29 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
         )}
 
         <div className="review-add-row-footer single-action-row">
-          <form action={addDraftRowAction}>
-            <input name="importGroupId" type="hidden" value={snapshot.importGroupId} />
-            <button className="button button-secondary review-add-row-button" type="submit">
-              新規追加
-            </button>
-          </form>
+          <button
+            className="button button-secondary review-add-row-button"
+            onClick={() => {
+              setEditableItems((current) => [...current, createNewEditableItem(snapshot, current.length)]);
+            }}
+            type="button"
+          >
+            新規追加
+          </button>
         </div>
       </section>
 
       <section className="surface section-card review-surface review-surface-wide">
-        <h2 className="section-title">保存して確定</h2>
+        <h2 className="section-title">登録して反映</h2>
         <p className="section-copy review-copy">
           {canConfirm
-            ? "すべて確認済みです。まとめて保存して、支出一覧へ反映できます。"
-            : `未確認が ${remainingItems.length} 件あります。すべて確認済みにしてから保存してください。`}
+            ? "すべて確認済みです。まとめて登録して、家計簿へ反映できます。"
+            : `未確認の支出が ${remainingItems.length} 件あります。すべて確認済みにしてから登録してください。`}
         </p>
         <div style={{ height: 14 }} />
         {visibleItems.length === 0 ? (
           <p className="section-copy review-copy">
-            確定できる明細がありません。必要に応じて明細を追加してください。
+            登録できる支出がありません。必要に応じて支出を追加してください。
           </p>
         ) : (
           <form action={confirmDraftsAction}>
@@ -290,19 +349,26 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
               value={JSON.stringify(
                 editableItems
                   .filter((entry) => !deletedIdSet.has(entry.id))
-                  .map((entry) => ({
-                    draftId: entry.id,
+                  .map((entry, index) => ({
+                    draftId: entry.draftId,
+                    lineIndex: index,
                     ...entry.values
                   }))
               )}
             />
-            <input name="deletedDraftIdsPayload" type="hidden" value={JSON.stringify(deletedIds)} />
+            <input
+              name="deletedDraftIdsPayload"
+              type="hidden"
+              value={JSON.stringify(
+                deletedIds.filter((id) => !id.startsWith("new-"))
+              )}
+            />
             <SubmitButton
               disabled={!canConfirm}
-              pendingLabel="保存して確定中..."
+              pendingLabel="登録して反映中..."
               testId="review-confirm-submit"
             >
-              保存して確定
+              登録して反映
             </SubmitButton>
           </form>
         )}
@@ -311,10 +377,10 @@ export function DraftReviewPanel({ snapshot }: DraftReviewPanelProps) {
           <input name="importGroupId" type="hidden" value={snapshot.importGroupId} />
           <ConfirmSubmitButton
             className="button button-secondary"
-            confirmationMessage="この取り込みを破棄しますか？確認前データはまとめて削除されます。"
+            confirmationMessage="この読み込み結果を破棄しますか？確認用データはまとめて削除されます。"
             testId="review-discard-import-group"
           >
-            この取り込みを破棄
+            この読み込みを破棄
           </ConfirmSubmitButton>
         </form>
       </section>

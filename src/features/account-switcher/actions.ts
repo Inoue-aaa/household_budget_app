@@ -1,9 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import { setCurrentAccountCookieValue } from "@/lib/accounts/cookies";
 import { getAuthenticatedAccountContext } from "@/lib/accounts/queries";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { upsertUserPreferencesPatch } from "@/lib/preferences/queries";
 
 export type SwitchAccountActionResult =
   | {
@@ -33,7 +32,6 @@ export async function switchCurrentAccountAction(
     };
   }
 
-  const supabase = await createServerSupabaseClient();
   const accountContext = await getAuthenticatedAccountContext();
 
   if (!accountContext) {
@@ -55,9 +53,7 @@ export async function switchCurrentAccountAction(
   }
 
   try {
-    await upsertUserPreferencesPatch(supabase, accountContext.userId, {
-      currentAccountId: targetAccount.id,
-    });
+    await setCurrentAccountCookieValue(targetAccount.id);
   } catch {
     return {
       status: "error",

@@ -4,6 +4,7 @@ import {
   DEFAULT_HOUSEHOLD_ACCOUNT_SLUG,
   FIXED_HOUSEHOLD_ACCOUNT_SEEDS,
 } from "@/lib/accounts/constants";
+import { getCurrentAccountCookieValue } from "@/lib/accounts/cookies";
 import type { HouseholdAccountRow, UserPreferenceRow } from "@/lib/finance/db-types";
 import type { CurrentAccountSnapshot, HouseholdAccountOption } from "@/lib/finance/types";
 import { DEFAULT_THEME_NAME, isAppThemeName, type AppThemeName } from "@/lib/theme/themes";
@@ -11,7 +12,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type PreferencesPatch = {
   themeName?: AppThemeName;
-  currentAccountId?: string | null;
 };
 
 type AuthenticatedAccountContext = {
@@ -94,16 +94,10 @@ export async function upsertUserPreferencesPatch(
       ? existing.theme_name
       : DEFAULT_THEME_NAME);
 
-  const currentAccountId =
-    patch.currentAccountId !== undefined
-      ? patch.currentAccountId
-      : existing?.current_account_id ?? null;
-
   const { error } = await supabase.from("user_preferences").upsert(
     {
       user_id: userId,
-      theme_name: themeName,
-      current_account_id: currentAccountId,
+      theme_name: themeName
     },
     {
       onConflict: "user_id",
@@ -126,17 +120,11 @@ const getCurrentAccountSnapshotInternal = cache(async (): Promise<CurrentAccount
   }
 
   const accounts = await ensureHouseholdAccounts(supabase, user.id);
-  const preferences = await getUserPreferencesRecord(supabase, user.id);
+  const cookieAccountId = await getCurrentAccountCookieValue();
   const currentAccount =
-    accounts.find((account) => account.id === preferences?.current_account_id) ??
+    accounts.find((account) => account.id === cookieAccountId) ??
     accounts.find((account) => account.slug === DEFAULT_HOUSEHOLD_ACCOUNT_SLUG) ??
     accounts[0];
-
-  if (!preferences || preferences.current_account_id !== currentAccount.id) {
-    await upsertUserPreferencesPatch(supabase, user.id, {
-      currentAccountId: currentAccount.id,
-    });
-  }
 
   return {
     currentAccount,
@@ -156,17 +144,11 @@ const getAuthenticatedAccountContextInternal = cache(
     }
 
     const accounts = await ensureHouseholdAccounts(supabase, user.id);
-    const preferences = await getUserPreferencesRecord(supabase, user.id);
+    const cookieAccountId = await getCurrentAccountCookieValue();
     const currentAccount =
-      accounts.find((account) => account.id === preferences?.current_account_id) ??
+      accounts.find((account) => account.id === cookieAccountId) ??
       accounts.find((account) => account.slug === DEFAULT_HOUSEHOLD_ACCOUNT_SLUG) ??
       accounts[0];
-
-    if (!preferences || preferences.current_account_id !== currentAccount.id) {
-      await upsertUserPreferencesPatch(supabase, user.id, {
-        currentAccountId: currentAccount.id,
-      });
-    }
 
     return {
       userId: user.id,

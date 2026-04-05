@@ -46,6 +46,6 @@ export function getOllamaOcrTimeoutMs() {
 }
 
 export function getOpenAiOcrTimeoutMs() {
-  const value = Number(process.env.OPENAI_OCR_TIMEOUT_MS ?? "20000");
-  return Number.isFinite(value) && value > 0 ? value : 20_000;
+  const value = Number(process.env.OPENAI_OCR_TIMEOUT_MS ?? "120000");
+  return Number.isFinite(value) && value > 0 ? value : 120_000;
 }
